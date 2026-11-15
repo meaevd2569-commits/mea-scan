@@ -10163,7 +10163,9 @@ function store(key,value){try{localStorage.setItem(key,value);}catch(e){}}
 function stored(key){try{return localStorage.getItem(key)||'';}catch(e){return '';}}
 function say(text,cls){$('message').textContent=text;$('message').className=cls||'';}
 
-let appUrl=(()=>{const a=new URLSearchParams(location.hash.slice(1)).get('app')||'';if(APP_RE.test(a)){store('meaScanApp',a);return a;}const s=stored('meaScanApp');return APP_RE.test(s)?s:'';})();
+// เว็บแอปตั้งต้น (ใช้เมื่อเปิดหน้านี้ตรงจากบุ๊กมาร์ก) — ป้าย QR ที่พิมพ์ไว้ชี้ไปเว็บแอปชุดเก่า จึงใช้เฉพาะรหัสจากป้าย
+const DEFAULT_APP='https://script.google.com/macros/s/AKfycby-gW2-Hi8xvLcqswW3isq4VJ6F9XAd72OiwZDnbaN4nY2e95wnGwRKB0tNGJtpRTuX/exec';
+let appUrl=(()=>{const a=new URLSearchParams(location.hash.slice(1)).get('app')||'';if(APP_RE.test(a)){store('meaScanApp',a);return a;}const s=stored('meaScanApp');return APP_RE.test(s)?s:DEFAULT_APP;})();
 if(appUrl){$('back').href=appUrl;$('back').hidden=false;}
 
 /** รับข้อความจาก QR: ได้ทั้ง URL ...exec?id=MEA-BP4-0001 และรหัสล้วน MEA-BP4-0001 */
@@ -10178,8 +10180,7 @@ function handle(text){
   if(busy)return;
   const r=parseQr(text);
   if(!r.id){if(Date.now()-lastWarn>2500){lastWarn=Date.now();say('QR นี้ไม่ใช่ป้ายครุภัณฑ์ (ต้องเป็นรหัส MEA-BP…) ลองป้ายอื่น','warn');}return;}
-  const target=appUrl||r.app;
-  if(!target){say('อ่านได้ '+r.id+' แต่ยังไม่รู้ที่อยู่เว็บแอป — เปิดหน้านี้จากปุ่ม “สแกน QR” ในเว็บตรวจสอบครุภัณฑ์ 1 ครั้งก่อน','bad');return;}
+  const target=appUrl;
   busy=true;$('frame').classList.add('hit');
   try{if(navigator.vibrate)navigator.vibrate(90);}catch(e){}
   say('อ่านได้ '+r.id+' — กำลังเปิดข้อมูล…','good');
@@ -10241,7 +10242,7 @@ async function startCamera(){
     let caps={};try{caps=track&&track.getCapabilities?track.getCapabilities():{};}catch(e){}
     $('torch').hidden=!caps.torch;$('torch').setAttribute('aria-pressed','false');
     running=true;$('frame').classList.remove('hit');
-    say(appUrl?'เล็ง QR ให้อยู่ในกรอบส้ม':'เล็ง QR ให้อยู่ในกรอบส้ม (ครั้งแรกแนะนำเปิดหน้านี้จากปุ่มในเว็บตรวจสอบครุภัณฑ์)');
+    say('เล็ง QR ให้อยู่ในกรอบส้ม');
     tick();
   }catch(e){stopCamera();say(cameraError(e),'bad');$('start').hidden=false;}
 }
