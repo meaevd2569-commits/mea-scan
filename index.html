@@ -17,6 +17,7 @@ header small{display:block;font-size:10px;letter-spacing:2px;color:#b6d6da}
 h1{font-size:20px;margin:3px 0 0}
 #back{color:#fff;text-decoration:none;font-size:14px;border:1px solid #6d9ca3;border-radius:999px;padding:8px 13px;white-space:nowrap}
 #back[hidden]{display:none}
+#mode{max-width:560px;margin:10px auto 0;padding:9px 13px;border-radius:10px;background:#ed9e40;color:#1a3134;font-weight:700;font-size:14px;line-height:1.5}
 main{flex:1;width:100%;max-width:560px;margin:auto;padding:14px 14px max(18px,env(safe-area-inset-bottom))}
 .camera{position:relative;width:100%;aspect-ratio:3/4;max-height:64vh;background:#000;border-radius:18px;overflow:hidden}
 video{width:100%;height:100%;object-fit:cover;display:block}
@@ -35,7 +36,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 </style>
 </head>
 <body>
-<header><div class="bar"><div><small>MEA · บพ.1–6</small><h1>สแกน QR ครุภัณฑ์</h1></div><a id="back" href="#" hidden>← หน้าค้นหา</a></div></header>
+<header><div class="bar"><div><small>MEA · บพ.1–6</small><h1>สแกน QR ครุภัณฑ์</h1></div><a id="back" href="#" hidden>← หน้าค้นหา</a></div><p id="mode" hidden></p></header>
 <main>
   <div class="camera"><video id="video" playsinline muted autoplay></video><div class="frame" id="frame"><i></i></div></div>
   <p id="message" role="status" aria-live="polite">กำลังเปิดกล้อง…</p>
@@ -10166,7 +10167,12 @@ function say(text,cls){$('message').textContent=text;$('message').className=cls|
 // เว็บแอปตั้งต้น (ใช้เมื่อเปิดหน้านี้ตรงจากบุ๊กมาร์ก) — ป้าย QR ที่พิมพ์ไว้ชี้ไปเว็บแอปชุดเก่า จึงใช้เฉพาะรหัสจากป้าย
 const DEFAULT_APP='https://script.google.com/macros/s/AKfycby-gW2-Hi8xvLcqswW3isq4VJ6F9XAd72OiwZDnbaN4nY2e95wnGwRKB0tNGJtpRTuX/exec';
 let appUrl=(()=>{const a=new URLSearchParams(location.hash.slice(1)).get('app')||'';if(APP_RE.test(a)){store('meaScanApp',a);return a;}const s=stored('meaScanApp');return APP_RE.test(s)?s:DEFAULT_APP;})();
-if(appUrl){$('back').href=appUrl;$('back').hidden=false;}
+// โหมดตรวจนับ: เปิดจากหน้าตรวจนับ (#page=stock&period=2569-R1-BP4) → สแกนแล้วบันทึกพบในรอบนั้น
+const hashParams=new URLSearchParams(location.hash.slice(1)),PERIOD_RE=/^2[5-8]\d{2}-R[12]-BP[1-6]$/;
+const stockPeriod=hashParams.get('page')==='stock'&&PERIOD_RE.test(hashParams.get('period')||'')?hashParams.get('period'):'';
+function targetFor(id){return appUrl+'?'+(stockPeriod?'page=stock&period='+encodeURIComponent(stockPeriod)+'&':'')+'id='+encodeURIComponent(id);}
+if(appUrl){$('back').href=stockPeriod?appUrl+'?page=stock&period='+encodeURIComponent(stockPeriod):appUrl;$('back').hidden=false;}
+if(stockPeriod){const [y,r,d]=stockPeriod.split('-');document.querySelector('h1').textContent='สแกนตรวจนับ';$('back').textContent='← หน้าตรวจนับ';$('mode').textContent='โหมดตรวจนับ · บพ.'+d.slice(2)+' · ปี '+y+' รอบ '+r.slice(1)+' — สแกนแล้วบันทึก “พบ” ทันที';$('mode').hidden=false;document.title='สแกนตรวจนับ · MEA';}
 
 /** รับข้อความจาก QR: ได้ทั้ง URL ...exec?id=MEA-BP4-0001 และรหัสล้วน MEA-BP4-0001 */
 function parseQr(text){
@@ -10180,12 +10186,11 @@ function handle(text){
   if(busy)return;
   const r=parseQr(text);
   if(!r.id){if(Date.now()-lastWarn>2500){lastWarn=Date.now();say('QR นี้ไม่ใช่ป้ายครุภัณฑ์ (ต้องเป็นรหัส MEA-BP…) ลองป้ายอื่น','warn');}return;}
-  const target=appUrl;
   busy=true;$('frame').classList.add('hit');
   try{if(navigator.vibrate)navigator.vibrate(90);}catch(e){}
-  say('อ่านได้ '+r.id+' — กำลังเปิดข้อมูล…','good');
+  say('อ่านได้ '+r.id+(stockPeriod?' — กำลังบันทึกพบ…':' — กำลังเปิดข้อมูล…'),'good');
   stopCamera();
-  location.assign(target+'?id='+encodeURIComponent(r.id));
+  location.assign(targetFor(r.id));
 }
 
 function makeDetector(){
