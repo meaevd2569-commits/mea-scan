@@ -62,6 +62,17 @@ button[aria-pressed="true"]{background:#ffe39a!important;color:#1a3134!important
 .muted{color:#b9cfd2;font-size:12px;line-height:1.6;margin:12px 2px 0}
 input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 @media(max-width:360px){.stock{grid-template-columns:1fr}.refs{grid-template-columns:1fr}}
+
+.condition-editor{margin-top:14px;border-top:1px solid #d5e0e3;padding-top:12px;color:#183e44}
+.condition-editor fieldset{border:0;margin:0 0 10px;padding:0;display:flex;flex-wrap:wrap;gap:7px;min-width:0}
+.condition-editor legend{font-weight:bold;margin-bottom:8px}.condition-editor label{display:block;font-size:14px;margin:5px 0}
+.condition-editor fieldset label{display:flex;align-items:center;gap:6px;min-height:44px;border:1px solid #aac6cb;border-radius:9px;padding:8px;background:#f4f9f9}
+.condition-editor input[type=radio]{width:22px;height:22px;accent-color:#087483;margin:0}
+.condition-editor textarea,.condition-editor input:not([type=radio]),.pick-filters input,.pick-filters select{display:block;width:100%;max-width:100%;min-height:44px;font:inherit;font-size:16px;padding:9px;border:1px solid #a9bfc2;border-radius:9px;background:white;color:#183e44}
+.condition-editor button,.next-asset{font:inherit;min-height:46px;padding:10px;border:1px solid #087483;border-radius:9px;margin:5px 3px 5px 0;background:#fff;color:#087483;cursor:pointer}
+.condition-editor .condition-save{background:#087483;color:white}.condition-editor button:disabled{opacity:.55}.condition-editor p{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.next-asset{width:100%;background:#ed9e40;color:#1a3134;border:0;font-weight:bold;margin:12px 0 0}
+.pick-filters{background:#e7f0f1;color:#183e44;border-radius:12px;padding:12px}.pick-filters label{display:block;font-size:14px;margin-bottom:9px}.pick-filters p{font-size:13px;margin:4px 0}.pick-empty{padding:10px}
 </style>
 </head>
 <body>
@@ -86,7 +97,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
     <input id="photo" type="file" accept="image/*" capture="environment">
   </div>
   <p class="muted">เล็งป้าย QR ให้อยู่ในกรอบส้ม สแกนต่อเนื่องได้ทีละป้าย • ภาพจากกล้องอ่านในเครื่องนี้เท่านั้น • ข้อมูลดึงจากเว็บแอปโดยไม่ใช้บัญชี Google จึงใช้ได้แม้ล็อกอินหลายบัญชี</p>
-</main>
+<p class="muted">V9.2 · เลือกเจ้าของ / กำลังใช้งาน / ชำรุด / รอจำหน่าย</p></main>
 <script>
 /* jsQR (Apache-2.0) https://github.com/cozmo/jsQR @8e6a036 */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -10224,7 +10235,11 @@ async function api(params){
   await configReady;
   const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),30000);
   try{
-    const r=await fetch(appUrl+'?'+new URLSearchParams(params).toString(),{credentials:'omit',cache:'no-store',redirect:'follow',signal:ctrl.signal});
+    const options={credentials:'omit',cache:'no-store',redirect:'follow',signal:ctrl.signal};
+    let url=appUrl;
+    if(params.api==='details'){options.method='POST';options.headers={'Content-Type':'text/plain;charset=utf-8'};options.body=JSON.stringify(params);}
+    else url+='?'+new URLSearchParams(params).toString();
+    const r=await fetch(url,options);
     const text=await r.text();let j;
     try{j=JSON.parse(text);}catch(e){throw Error('เว็บแอปยังไม่รองรับหน้าสแกนนี้ — ต้องอัปเดตโค้ด Apps Script และการทำให้ใช้งานได้เป็นเวอร์ชันใหม่');}
     if(!j.ok)throw Error(j.error||'เกิดข้อผิดพลาด');
@@ -10263,6 +10278,7 @@ $('round').onfocus=()=>{if(!rounds.length&&!$('round').disabled)loadRounds();};
 
 /* ---------- แสดงผล ---------- */
 function card(a,status){
+  editing=true;
   const c=el('article',undefined,'card'+(status?' '+status[0]:''));
   if(status)c.append(el('p',status[1],'status'));
   c.append(el('p','ชื่อครุภัณฑ์','label'),el('h2',shown(a.description)));
@@ -10273,6 +10289,8 @@ function card(a,status){
   c.append(refs);
   if(a.id)c.append(el('p','รหัสกลาง '+a.id+(a.department?' · บพ.'+String(a.department).replace(/^BP/,''):''),'chip'));
   if(a.id&&'owner' in a){const b=el('button','✎ แก้ไขสถานที่ / เจ้าของ','edit-btn');b.type='button';b.onclick=()=>openEdit(a,c,status);c.append(b);}
+  if(a.id)c.append(cameraStatusEditor(a,c,status));
+  c.append(nextAssetButton());
   return c;
 }
 /* ---------- แก้ไขสถานที่ / เจ้าของ (บันทึกลงทะเบียน + เก็บประวัติ) ---------- */
@@ -10308,13 +10326,52 @@ function openEdit(a,c,status){
   const btn=c.querySelector('.edit-btn');if(btn)btn.replaceWith(f);else c.append(f);
   say('กำลังแก้ไข — หยุดสแกนชั่วคราว');loc.focus();
 }
-function pickList(items,onPick,note){
-  const w=el('div',undefined,'picks');
-  items.forEach(a=>{const b=el('button',undefined,'pick'+(a.found?' done':''));b.type='button';
-    const n=note?note(a):'';b.append(el('b','สินทรัพย์เดิม '+shown(a.oldAssetNo)),el('span',shown(a.description)+' · '+shown(a.location)),el('span',a.id+(n?' · '+n:'')));
-    b.onclick=()=>onPick(a);w.append(b);});
-  return w;
+function cameraStatusEditor(a,c,status){
+  const f=el('form',undefined,'condition-editor');f.noValidate=true;
+  const field=el('fieldset'),legend=el('legend','สถานะครุภัณฑ์');field.append(legend);
+  const group='condition-'+rid(),radios=[];
+  [['ใช้งาน','กำลังใช้งาน'],['ชำรุด','ชำรุด'],['รอจำหน่าย','รอจำหน่าย']].forEach(([value,label])=>{const l=el('label'),r=el('input');r.type='radio';r.name=group;r.value=value;r.checked=(a.usageStatus==='กำลังใช้งาน'?'ใช้งาน':a.usageStatus)===value;radios.push(r);l.append(r,el('span',label));field.append(l);});
+  const noteLabel=el('label','หมายเหตุ'),note=el('textarea');note.maxLength=2000;note.rows=3;note.value=a.note||'';noteLabel.append(note);
+  const byLabel=el('label','ชื่อผู้บันทึก'),by=el('input');by.maxLength=60;by.value=cleanName($('who').value||stored('meaInspectorName'));by.autocomplete='name';byLabel.append(by);
+  const clear=el('button','ล้างการเลือก'),save=el('button','บันทึกสถานะและหมายเหตุ');clear.type='button';save.type='submit';save.className='condition-save';
+  const message=el('p',a.detailsEditable?'เลือกสถานะแล้วกดบันทึก · ไม่เปลี่ยนยอดตรวจนับ':'ยังบันทึกสถานะไม่ได้ กรุณาให้ผู้ดูแลอัปเดตระบบเป็น V9.2');message.setAttribute('role','status');
+  const controls=[...radios,note,by,clear,save];controls.forEach(n=>n.disabled=!a.detailsEditable);
+  clear.onclick=()=>radios.forEach(r=>r.checked=false);f.append(field,noteLabel,byLabel,clear,save,message);
+  let pending=null,lastPayload='';
+  f.onsubmit=async event=>{
+    event.preventDefault();if(save.disabled||!a.detailsEditable)return;
+    const B=cleanName(by.value);if(!B){message.textContent='กรุณาระบุชื่อผู้บันทึก';by.focus();return;}
+    const p={api:'details',id:a.id,note:note.value,usageStatus:(radios.find(r=>r.checked)||{}).value||'',expectedNote:a.note||'',expectedUsageStatus:a.usageStatus||'',by:B};
+    const key=JSON.stringify(p);if(!pending||key!==lastPayload){pending={...p,rid:rid()};lastPayload=key;}
+    controls.forEach(n=>n.disabled=true);message.textContent='กำลังบันทึก…';busy=true;
+    try{const j=await api(pending);if(!j.asset)throw Error('ระบบไม่ส่งผลยืนยัน กรุณาลองบันทึกอีกครั้ง');
+      store('meaInspectorName',B);$('who').value=B;
+      a.note=j.asset.note;a.usageStatus=j.asset.usageStatus;a.owner=j.asset.owner;note.value=a.note||'';radios.forEach(r=>r.checked=a.usageStatus===r.value);pending=null;
+      message.textContent=j.replayed?'คำขอนี้บันทึกแล้ว · แสดงค่าล่าสุด':j.changed?'✓ บันทึกสถานะและหมายเหตุแล้ว':'ข้อมูลตรงกับที่บันทึกไว้แล้ว';
+      say('บันทึกสถานะแล้ว · ยอดตรวจนับไม่เปลี่ยน','good');
+    }catch(e){message.textContent='บันทึกไม่สำเร็จ: '+e.message;}
+    finally{busy=false;controls.forEach(n=>n.disabled=false);}
+  };
+  return f;
 }
+function nextAssetButton(){const next=el('button','สแกนชิ้นต่อไป','next-asset');next.type='button';next.onclick=()=>{if(busy)return;editing=false;holdSame=false;lastText='';lastAt=0;$('result').replaceChildren();say('เล็งป้ายถัดไปได้เลย');};return next;}
+function pickList(items,onPick,note){
+  const w=el('div',undefined,'picks'),filters=el('div',undefined,'pick-filters');
+  const searchLabel=el('label','ค้นหาเลขสินทรัพย์เดิม / เจ้าของ / ชื่อครุภัณฑ์'),search=el('input');search.type='search';search.placeholder='พิมพ์เลขบนป้าย หรือบางส่วนของชื่อ';searchLabel.append(search);
+  const ownerLabel=el('label','เลือกเจ้าของ'),owner=el('select');const all=el('option','เจ้าของทั้งหมด');all.value='';owner.append(all);
+  Array.from(new Set(items.map(a=>String(a.owner||'').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'th')).forEach(name=>{const o=el('option',name);o.value=name;owner.append(o);});ownerLabel.append(owner);
+  const count=el('p'),list=el('div',undefined,'picks');filters.append(searchLabel,ownerLabel,count);w.append(filters,list);
+  const norm=v=>String(v||'').normalize('NFKC').toLowerCase().replace(/\s+/g,'').trim();
+  const render=()=>{list.replaceChildren();const q=norm(search.value),rows=items.filter(a=>(!owner.value||String(a.owner||'').trim()===owner.value)&&(!q||[a.oldAssetNo,a.assetNo,a.owner,a.description,a.id,a.location].some(v=>norm(v).includes(q))));
+    count.textContent='แสดง '+rows.length+' จาก '+items.length+' รายการ · เทียบเลขเดิมบนป้ายก่อนเลือก';
+    if(!rows.length)list.append(el('p','ไม่พบตามตัวกรอง ลองล้างคำค้นหรือเลือกเจ้าของทั้งหมด','pick-empty'));
+    rows.forEach(a=>{const b=el('button',undefined,'pick'+(a.found?' done':''));b.type='button';const n=note?note(a):'';
+      b.append(el('b','สินทรัพย์เดิม '+shown(a.oldAssetNo)),el('span','เจ้าของ: '+shown(a.owner)),el('span',shown(a.description)+' · '+shown(a.location)),el('span',a.id+(n?' · '+n:'')));
+      b.onclick=()=>onPick(a);list.append(b);
+    });
+  };search.oninput=render;owner.onchange=render;render();return w;
+}
+
 function showCounts(c){if(c)$('counts').textContent='พบแล้ว '+c.found+' / '+c.total+' · ยังไม่พบ '+c.remaining;}
 function showLookup(j){
   const box=$('result');box.replaceChildren();
@@ -10466,3 +10523,4 @@ startCamera();
 </script>
 </body>
 </html>
+
