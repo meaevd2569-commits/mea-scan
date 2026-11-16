@@ -1,0 +1,4 @@
+{
+  "app": "https://script.google.com/macros/s/AKfycbzK-97XBYRIzYEit3a7P4kGkiBl9Pt9tKwD6hBBynKIuS8Xg3524arezwWZMY7Z0aLi/exec",
+  "วิธีแก้": "ถ้าสร้างการทำให้ใช้งานได้ใหม่ใน Apps Script ให้เปลี่ยนค่า app ด้านบนเป็น URL /exec ใหม่ แล้วกด Commit — หน้าสแกนจะใช้ URL ใหม่ทันที"
+}
