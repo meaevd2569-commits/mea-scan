@@ -10194,7 +10194,7 @@ const LEGACY_RE=/^0123456789[^\u0000-\u001f<>]{0,40}$/,NUMBER_RE=/^\d{6,20}$/,PE
 const $=id=>document.getElementById(id);
 const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
 let stream=null,track=null,running=false,timer=0,detector=null,detectorReady=null,torchOn=false;
-let busy=false,lastText='',lastAt=0,lastWarn=0,mode='look',rounds=[],roundId='';
+let busy=false,lastText='',lastAt=0,lastWarn=0,holdSame=false,mode='look',rounds=[],roundId='';
 
 function store(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 function stored(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
@@ -10233,7 +10233,7 @@ async function api(params){
 function setMode(m){
   mode=m==='stock'?'stock':'look';store('meaMode',mode);
   $('tabLook').setAttribute('aria-selected',String(mode==='look'));$('tabStock').setAttribute('aria-selected',String(mode==='stock'));
-  $('stockBar').hidden=mode!=='stock';$('result').replaceChildren();lastText='';
+  $('stockBar').hidden=mode!=='stock';$('result').replaceChildren();lastText='';holdSame=false;
   if(mode==='stock'){if(!rounds.length)loadRounds();else say('โหมดตรวจนับ · เล็ง QR ให้อยู่ในกรอบ');}
   else say('โหมดดูข้อมูล · เล็ง QR ให้อยู่ในกรอบ');
 }
@@ -10250,7 +10250,7 @@ async function loadRounds(){
 }
 $('tabLook').onclick=()=>setMode('look');
 $('tabStock').onclick=()=>setMode('stock');
-$('round').onchange=()=>{if(!rounds.length){loadRounds();return;}roundId=$('round').value;wantRound=roundId;store('meaRound',roundId);$('counts').textContent='';$('result').replaceChildren();lastText='';};
+$('round').onchange=()=>{if(!rounds.length){loadRounds();return;}roundId=$('round').value;wantRound=roundId;store('meaRound',roundId);$('counts').textContent='';$('result').replaceChildren();lastText='';holdSame=false;};
 $('round').onfocus=()=>{if(!rounds.length&&!$('round').disabled)loadRounds();};
 ['change','blur'].forEach(ev=>$('who').addEventListener(ev,()=>{$('who').value=cleanName($('who').value);store('meaInspectorName',$('who').value);}));
 
@@ -10279,7 +10279,8 @@ function showLookup(j){
   if(!j.total){say('ไม่พบ '+(j.query||'รหัสนี้')+' ในทะเบียน','warn');return;}
   if(j.total===1){box.append(card(j.results[0]));say('อ่านได้ · เล็งป้ายถัดไปได้เลย','good');return;}
   say(j.blank?'ป้ายนี้ไม่มีเลขสินทรัพย์ใน QR — แตะรายการที่ “สินทรัพย์เดิม” ตรงกับบนป้าย':'พบ '+j.total+' รายการ — แตะเพื่อดู','warn');
-  box.append(pickList(j.results,a=>{const back=el('button','← กลับไปเลือกรายการอื่น','back-btn');back.type='button';back.onclick=()=>showLookup(j);box.replaceChildren(card(a),back);say('เล็งป้ายถัดไปได้เลย','good');}));
+  box.append(pickList(j.results,a=>{holdSame=false;lastAt=Date.now();const back=el('button','← กลับไปเลือกรายการอื่น','back-btn');back.type='button';back.onclick=()=>showLookup(j);box.replaceChildren(card(a),back);say('เล็งป้ายถัดไปได้เลย','good');}));
+  holdSame=true;box.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function showScan(j){
   const box=$('result');box.replaceChildren();
@@ -10288,7 +10289,8 @@ function showScan(j){
     if(!j.candidates.length){say('ไม่พบรายการที่ตรงกับป้ายนี้','warn');return;}
     say('ป้ายนี้ไม่มีเลขสินทรัพย์ใน QR — แตะรายการที่ “สินทรัพย์เดิม” ตรงกับบนป้าย เพื่อบันทึกพบ','warn');
     const list=j.candidates.slice().sort((a,b)=>(a.found-b.found)||((!a.inRound)-(!b.inRound)));
-    box.append(pickList(list,a=>doScan({id:a.id}),a=>(a.found?'พบแล้ว':'')+(a.inRound?'':' ไม่อยู่ในรอบนี้')));
+    box.append(pickList(list,a=>{holdSame=false;doScan({id:a.id});},a=>(a.found?'พบแล้ว':'')+(a.inRound?'':' ไม่อยู่ในรอบนี้')));
+    holdSame=true;box.scrollIntoView({behavior:'smooth',block:'start'});
     return;
   }
   const r=j.result;showCounts(r.counts);
@@ -10310,8 +10312,8 @@ function parseQr(text){
 async function doLookup(code){
   busy=true;$('frame').classList.add('hit');say('กำลังค้นข้อมูล…');
   try{showLookup(await api({api:'lookup',code:code}));}
-  catch(e){say(e.message,'bad');lastText='';}
-  finally{busy=false;$('frame').classList.remove('hit');}
+  catch(e){say(e.message,'bad');lastText='';holdSame=false;}
+  finally{busy=false;lastAt=Date.now();$('frame').classList.remove('hit');}
 }
 async function doScan(key){
   if(busy)return;
@@ -10320,15 +10322,16 @@ async function doScan(key){
   if(!who){say('พิมพ์ชื่อผู้ตรวจก่อนสแกน (ใส่ครั้งเดียว เครื่องจำไว้)','bad');$('who').focus();lastText='';return;}
   busy=true;$('frame').classList.add('hit');say('กำลังบันทึก…');
   try{showScan(await api(Object.assign({api:'scan',period:roundId,by:who,rid:rid()},key)));}
-  catch(e){say(e.message,'bad');lastText='';}
-  finally{busy=false;$('frame').classList.remove('hit');}
+  catch(e){say(e.message,'bad');lastText='';holdSame=false;}
+  finally{busy=false;lastAt=Date.now();$('frame').classList.remove('hit');}
 }
 function handle(text){
   const raw=String(text||'').trim(),now=Date.now();
-  if(busy||(raw===lastText&&now-lastAt<5000))return;
+  // ป้ายเดิมที่ยังค้างหน้ากล้อง: ไม่ส่งซ้ำภายใน 5 วินาที · ขณะรอให้แตะเลือกรายการ ไม่ส่งซ้ำเลยจนกว่าจะเลือกหรือเจอป้ายอื่น
+  if(busy||(raw===lastText&&(holdSame||now-lastAt<5000)))return;
   const r=parseQr(raw);
   if(!r.id&&!r.code){if(now-lastWarn>2500){lastWarn=now;say('QR นี้ไม่ใช่ป้ายครุภัณฑ์ ลองป้ายอื่น','warn');}return;}
-  lastText=raw;lastAt=now;
+  lastText=raw;lastAt=now;holdSame=false;
   try{if(navigator.vibrate)navigator.vibrate(60);}catch(e){}
   const key=r.id?{id:r.id}:{code:r.code};
   if(mode==='stock')doScan(key);else doLookup(r.id||r.code);
