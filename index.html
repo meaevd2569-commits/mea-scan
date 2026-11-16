@@ -10167,8 +10167,9 @@ function stored(key){try{return localStorage.getItem(key)||'';}catch(e){return '
 function say(text,cls){$('message').textContent=text;$('message').className=cls||'';}
 
 // เว็บแอปตั้งต้น (ใช้เมื่อเปิดหน้านี้ตรงจากบุ๊กมาร์ก) — ป้าย QR ที่พิมพ์ไว้ชี้ไปเว็บแอปชุดเก่า จึงใช้เฉพาะรหัสจากป้าย
-const DEFAULT_APP='https://script.google.com/macros/s/AKfycby07pOk5tTcJjSx3_C0pQwAjz0xMxzwaaDPqjJJGDVwu3ExukaPJUAjAuhmcl-Ty1Sq/exec';
-let appUrl=(()=>{const a=new URLSearchParams(location.hash.slice(1)).get('app')||'';if(APP_RE.test(a)){store('meaScanApp',a);return a;}const s=stored('meaScanApp');return APP_RE.test(s)?s:DEFAULT_APP;})();
+const DEFAULT_APP='https://script.google.com/macros/s/AKfycbzSSKL478mvz4rN-Pd6D2cVTwliugu7FZGXuWperxlC9U9zqGO5rj8XCL8FvnNexsCA/exec';
+// ใช้ URL ที่หน้าเว็บแอปส่งมาเสมอ (ไม่จำค่าเก่าในเครื่อง — กันกรณีการทำให้ใช้งานได้เดิมถูกเก็บไปแล้ว)
+let appUrl=(()=>{const a=new URLSearchParams(location.hash.slice(1)).get('app')||'';return APP_RE.test(a)?a:DEFAULT_APP;})();
 // โหมดตรวจนับ: เปิดจากหน้าตรวจนับ (#page=stock&period=2569-R1-BP4) → สแกนแล้วบันทึกพบในรอบนั้น
 const hashParams=new URLSearchParams(location.hash.slice(1)),PERIOD_RE=/^2[5-8]\d{2}-R[12]-BP[1-6]$/;
 const stockPeriod=hashParams.get('page')==='stock'&&PERIOD_RE.test(hashParams.get('period')||'')?hashParams.get('period'):'';
