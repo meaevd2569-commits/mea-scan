@@ -72,6 +72,12 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .condition-editor button,.next-asset{font:inherit;min-height:46px;padding:10px;border:1px solid #087483;border-radius:9px;margin:5px 3px 5px 0;background:#fff;color:#087483;cursor:pointer}
 .condition-editor .condition-save{background:#087483;color:white}.condition-editor button:disabled{opacity:.55}.condition-editor p{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
 .next-asset{width:100%;background:#ed9e40;color:#1a3134;border:0;font-weight:bold;margin:12px 0 0}
+.transfer{margin-top:12px;border:1px solid #c9d8db;border-radius:11px;background:#f7fafa;color:#183e44}
+.transfer>summary{cursor:pointer;min-height:46px;display:flex;align-items:center;padding:0 12px;font-weight:bold;color:#087483}
+.transfer form{padding:0 12px 12px;display:grid;gap:8px}.transfer label{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.transfer select,.transfer input{min-height:44px;font:inherit;font-size:16px;border:1px solid #a9bfc2;border-radius:9px;padding:8px 10px;background:#fff;color:#183e44}
+.transfer button{min-height:48px;font:inherit;font-weight:bold;border:0;border-radius:10px;background:#087483;color:#fff;cursor:pointer}.transfer button:disabled{opacity:.55}
+.transfer p{margin:0;font-size:13px;line-height:1.5}
 .pick-filters{background:#e7f0f1;color:#183e44;border-radius:12px;padding:12px}.pick-filters label{display:block;font-size:14px;margin-bottom:9px}.pick-filters p{font-size:13px;margin:4px 0}.pick-empty{padding:10px}
 </style>
 </head>
@@ -10297,8 +10303,48 @@ function card(a,status){
   if(a.id)c.append(el('p','รหัสกลาง '+a.id+(a.department?' · บพ.'+String(a.department).replace(/^BP/,''):''),'chip'));
 
   if(a.id)c.append(cameraStatusEditor(a,c,status));
+  if(a.id&&a.transferable)c.append(transferBox(a,c));
   c.append(nextAssetButton());
   return c;
+}
+/* ---------- V9.5 โอนย้ายข้ามแผนก: รหัสกลางเดิม · เปลี่ยนแผนกในทะเบียน · ย้ายรายการในรอบที่เปิดอยู่ ---------- */
+function transferBox(a,c){
+  const box=el('details',undefined,'transfer'),sum=el('summary','⇄ โอนย้ายไปแผนกอื่น');box.append(sum);
+  const f=el('form');f.noValidate=true;
+  const deptL=el('label','ไปแผนก'),dept=el('select');
+  for(let n=1;n<=6;n++){const v='BP'+n;if(v===a.department)continue;const o=el('option','บพ.'+n);o.value=v;dept.append(o);}
+  deptL.append(dept);
+  const field=(label,value,list,ph,max)=>{const l=el('label',label),i=el('input');i.type='text';i.maxLength=max||150;i.value=value&&value!=='-'?value:'';if(list)i.setAttribute('list',list);i.placeholder=ph||'';i.autocomplete='off';l.append(i);f.append(l);return i;};
+  f.append(deptL);
+  const loc=field('สถานที่ใหม่',a.location,'locList','เช่น อาคาร 2 ชั้น 3 (สามเสน)');
+  const own=field('เจ้าของ (ผู้ใช้งาน) ใหม่',a.owner,'ownList','เว้นว่าง = ไม่ระบุ');
+  const by=field('ชื่อผู้โอน',cleanName($('who').value||stored('meaInspectorName')),'','ชื่อ-สกุล',60);by.autocomplete='name';
+  const go=el('button','ยืนยันโอนย้าย');go.type='submit';
+  const msg=el('p','รหัสกลางเดิม '+a.id+' ใช้ต่อได้ ไม่ต้องพิมพ์ป้ายใหม่ · ระบบเก็บประวัติการโอนทุกครั้ง');msg.setAttribute('role','status');
+  f.append(go,msg);box.append(f);
+  box.addEventListener('toggle',()=>{if(box.open)loadOptions();});
+  let pending=null,lastKey='';
+  f.onsubmit=async e=>{
+    e.preventDefault();if(go.disabled)return;
+    const L=loc.value.replace(/\s+/g,' ').trim(),O=own.value.replace(/\s+/g,' ').trim(),B=cleanName(by.value),to=dept.value;
+    if(!L){msg.textContent='กรุณาใส่สถานที่ใหม่';loc.focus();return;}
+    if(!B){msg.textContent='กรุณาใส่ชื่อผู้โอน';by.focus();return;}
+    const toLabel='บพ.'+to.replace(/^BP/,''),fromLabel='บพ.'+String(a.department||'').replace(/^BP/,'');
+    if(!confirm('โอน '+a.id+'\n'+shown(a.description)+'\nจาก '+fromLabel+' ไป '+toLabel+' ?'))return;
+    const p={api:'transfer',id:a.id,to:to,location:L,owner:O,by:B},key=JSON.stringify(p);
+    if(!pending||key!==lastKey){pending={...p,rid:rid()};lastKey=key;}
+    go.disabled=true;msg.textContent='กำลังโอนย้าย…';busy=true;
+    try{
+      const j=await api(pending);pending=null;
+      store('meaInspectorName',B);if(!cleanName($('who').value))$('who').value=B;
+      const r=j.rounds||{},extra=[(r.removed||[]).length?'เอาออกจากรอบ '+r.removed.join(', '):'',(r.added||[]).length?'เพิ่มในรอบ '+r.added.join(', '):''].filter(Boolean).join(' · ');
+      const head=j.replayed?'คำขอนี้บันทึกแล้ว':j.changed?'✓ โอนไป '+toLabel+' แล้ว':'ข้อมูลเหมือนเดิม ไม่ได้โอน';
+      c.replaceWith(card({...a,...(j.asset||{})},['ok',head+(extra?' · '+extra:'')]));
+      say(head+(extra?' · '+extra:''),'good');
+    }catch(err){msg.textContent='โอนไม่สำเร็จ: '+err.message;go.disabled=false;}
+    finally{busy=false;}
+  };
+  return box;
 }
 /* ---------- แก้ไขสถานที่ / เจ้าของ (บันทึกลงทะเบียน + เก็บประวัติ) ---------- */
 async function loadOptions(){
