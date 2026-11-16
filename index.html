@@ -10156,6 +10156,8 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
 // ที่อยู่เว็บแอปที่อนุญาตให้ส่งกลับ (Google Apps Script /exec หรือ /dev เท่านั้น)
 const APP_RE=/^https:\/\/script\.google\.com\/(?:a\/macros\/[A-Za-z0-9.-]+\/|macros\/)(?:u\/\d+\/)?s\/[A-Za-z0-9_-]{20,}\/(?:exec|dev)$/;
 const ID_RE=/MEA-BP[1-6]-\d{4}/i;
+// ป้ายรุ่นแรก: QR = "0123456789" + เลขสินทรัพย์ (หรือ "-") · หรือ QR ที่มีแค่เลขสินทรัพย์ล้วน
+const LEGACY_RE=/^0123456789[^\u0000-\u001f<>]{0,40}$/,NUMBER_RE=/^\d{6,20}$/;
 const $=id=>document.getElementById(id);
 const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
 let stream=null,track=null,running=false,busy=false,timer=0,lastWarn=0,detector=null,detectorReady=null,torchOn=false;
@@ -10171,7 +10173,7 @@ let appUrl=(()=>{const a=new URLSearchParams(location.hash.slice(1)).get('app')|
 const hashParams=new URLSearchParams(location.hash.slice(1)),PERIOD_RE=/^2[5-8]\d{2}-R[12]-BP[1-6]$/;
 const stockPeriod=hashParams.get('page')==='stock'&&PERIOD_RE.test(hashParams.get('period')||'')?hashParams.get('period'):'';
 const byName=stockPeriod?String(hashParams.get('by')||'').replace(/[\u0000-\u001f<>]/g,'').replace(/\s+/g,' ').trim().slice(0,60):'';
-function targetFor(id){return appUrl+'?'+(stockPeriod?'page=stock&period='+encodeURIComponent(stockPeriod)+'&':'')+'id='+encodeURIComponent(id)+(byName?'&by='+encodeURIComponent(byName):'');}
+function targetFor(r){return appUrl+'?'+(stockPeriod?'page=stock&period='+encodeURIComponent(stockPeriod)+'&':'')+(r.id?'id='+encodeURIComponent(r.id):'code='+encodeURIComponent(r.code))+(byName?'&by='+encodeURIComponent(byName):'');}
 if(appUrl){$('back').href=stockPeriod?appUrl+'?page=stock&period='+encodeURIComponent(stockPeriod)+(byName?'&by='+encodeURIComponent(byName):''):appUrl;$('back').hidden=false;}
 if(stockPeriod){const [y,r,d]=stockPeriod.split('-');document.querySelector('h1').textContent='สแกนตรวจนับ';$('back').textContent='← หน้าตรวจนับ';$('mode').textContent='โหมดตรวจนับ · บพ.'+d.slice(2)+' · ปี '+y+' รอบ '+r.slice(1)+(byName?' · ผู้ตรวจ '+byName:'')+' — สแกนแล้วบันทึก “พบ” ทันที';$('mode').hidden=false;document.title='สแกนตรวจนับ · MEA';}
 
@@ -10180,18 +10182,19 @@ function parseQr(text){
   const raw=String(text||'').trim();let id='',app='';
   try{const u=new URL(raw);const base=u.origin+u.pathname;if(APP_RE.test(base))app=base;const m=(u.searchParams.get('id')||'').match(ID_RE);if(m)id=m[0];}catch(e){}
   if(!id){const m=raw.match(ID_RE);if(m)id=m[0];}
-  return {id:id.toUpperCase(),app:app};
+  const code=!id&&(LEGACY_RE.test(raw)||NUMBER_RE.test(raw))?raw:'';
+  return {id:id.toUpperCase(),code:code,app:app};
 }
 
 function handle(text){
   if(busy)return;
   const r=parseQr(text);
-  if(!r.id){if(Date.now()-lastWarn>2500){lastWarn=Date.now();say('QR นี้ไม่ใช่ป้ายครุภัณฑ์ (ต้องเป็นรหัส MEA-BP…) ลองป้ายอื่น','warn');}return;}
+  if(!r.id&&!r.code){if(Date.now()-lastWarn>2500){lastWarn=Date.now();say('QR นี้ไม่ใช่ป้ายครุภัณฑ์ (ต้องเป็นรหัส MEA-BP…) ลองป้ายอื่น','warn');}return;}
   busy=true;$('frame').classList.add('hit');
   try{if(navigator.vibrate)navigator.vibrate(90);}catch(e){}
-  say('อ่านได้ '+r.id+(stockPeriod?' — กำลังบันทึกพบ…':' — กำลังเปิดข้อมูล…'),'good');
+  say('อ่านได้ '+(r.id||'ป้ายเลขสินทรัพย์')+(stockPeriod?' — กำลังบันทึกพบ…':' — กำลังเปิดข้อมูล…'),'good');
   stopCamera();
-  location.assign(targetFor(r.id));
+  location.assign(targetFor(r));
 }
 
 function makeDetector(){
