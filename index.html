@@ -44,6 +44,12 @@ video{width:100%;height:100%;object-fit:cover;display:block}
 .refs div{background:#f2f7f7;border-radius:10px;padding:9px}
 .refs dt{font-size:12px;color:#5b767a}.refs dd{margin:3px 0 0;font-weight:700;font-size:17px;overflow-wrap:anywhere}
 .chip{font-size:12px;color:#46656a;margin:10px 0 0}
+.owner{background:#eef6f7;border-radius:12px;padding:9px 12px;margin:0 0 10px}.owner strong{display:block;font-size:17px;color:#183e44;overflow-wrap:anywhere}
+.edit-btn{width:100%;margin-top:12px;min-height:46px;border:2px solid #086672;border-radius:11px;background:#fff;color:#086672;font:inherit;font-weight:700;cursor:pointer}
+.edit{margin-top:12px;display:grid;gap:9px;border-top:1px solid #d6e2e3;padding-top:12px}.edit label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b767a}
+.edit input{min-height:44px;border:1px solid #a9bfc2;border-radius:10px;padding:8px 10px;font:inherit;font-size:16px;color:#183e44;background:#fff}
+.edit-actions{display:grid;grid-template-columns:1fr 2fr;gap:8px}.edit-actions button{min-height:48px;border-radius:11px;font:inherit;font-weight:700;border:0;cursor:pointer}
+.edit-actions .save{background:#086672;color:#fff}.edit-actions .cancel{background:#e3edee;color:#183e44}.edit-actions button:disabled{opacity:.55}.edit-note{font-size:11px;color:#6d8588;margin:0}
 .picks{display:grid;gap:7px}
 .pick{display:block;width:100%;text-align:left;border:0;background:#fff;color:#183e44;border-radius:12px;padding:10px 12px;font:inherit;cursor:pointer}
 .pick b{display:block;font-size:17px}.pick span{display:block;font-size:12px;color:#46656a;margin-top:2px}.pick.done{opacity:.55}
@@ -72,6 +78,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
   <div class="camera"><video id="video" playsinline muted autoplay></video><div class="frame" id="frame"><i></i></div></div>
   <p id="message" role="status" aria-live="polite">กำลังเปิดกล้อง…</p>
   <section id="result" aria-live="polite"></section>
+  <datalist id="locList"></datalist><datalist id="ownList"></datalist>
   <div class="actions">
     <button id="start" type="button" hidden>เปิดกล้อง</button>
     <button id="torch" type="button" aria-pressed="false" hidden>ไฟฉาย</button>
@@ -10194,7 +10201,7 @@ const LEGACY_RE=/^0123456789[^\u0000-\u001f<>]{0,40}$/,NUMBER_RE=/^\d{6,20}$/,PE
 const $=id=>document.getElementById(id);
 const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
 let stream=null,track=null,running=false,timer=0,detector=null,detectorReady=null,torchOn=false;
-let busy=false,lastText='',lastAt=0,lastWarn=0,holdSame=false,mode='look',rounds=[],roundId='';
+let busy=false,lastText='',lastAt=0,lastWarn=0,holdSame=false,editing=false,optionsLoaded=false,mode='look',rounds=[],roundId='';
 
 function store(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 function stored(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
@@ -10233,7 +10240,7 @@ async function api(params){
 function setMode(m){
   mode=m==='stock'?'stock':'look';store('meaMode',mode);
   $('tabLook').setAttribute('aria-selected',String(mode==='look'));$('tabStock').setAttribute('aria-selected',String(mode==='stock'));
-  $('stockBar').hidden=mode!=='stock';$('result').replaceChildren();lastText='';holdSame=false;
+  $('stockBar').hidden=mode!=='stock';$('result').replaceChildren();lastText='';holdSame=false;editing=false;
   if(mode==='stock'){if(!rounds.length)loadRounds();else say('โหมดตรวจนับ · เล็ง QR ให้อยู่ในกรอบ');}
   else say('โหมดดูข้อมูล · เล็ง QR ให้อยู่ในกรอบ');
 }
@@ -10260,11 +10267,46 @@ function card(a,status){
   if(status)c.append(el('p',status[1],'status'));
   c.append(el('p','ชื่อครุภัณฑ์','label'),el('h2',shown(a.description)));
   const w=el('div',undefined,'where');w.append(el('p','อยู่ที่','label'),el('strong',shown(a.location)));c.append(w);
+  if('owner' in a){const ow=el('div',undefined,'owner');ow.append(el('p','เจ้าของ (ผู้ใช้งาน)','label'),el('strong',shown(a.owner)));c.append(ow);}
   const refs=el('dl',undefined,'refs');
   [['สินทรัพย์',a.assetNo],['สินทรัพย์เดิม',a.oldAssetNo]].forEach(([k,v])=>{const d=el('div');d.append(el('dt',k),el('dd',shown(v)));refs.append(d);});
   c.append(refs);
   if(a.id)c.append(el('p','รหัสกลาง '+a.id+(a.department?' · บพ.'+String(a.department).replace(/^BP/,''):''),'chip'));
+  if(a.id&&'owner' in a){const b=el('button','✎ แก้ไขสถานที่ / เจ้าของ','edit-btn');b.type='button';b.onclick=()=>openEdit(a,c,status);c.append(b);}
   return c;
+}
+/* ---------- แก้ไขสถานที่ / เจ้าของ (บันทึกลงทะเบียน + เก็บประวัติ) ---------- */
+async function loadOptions(){
+  if(optionsLoaded)return;optionsLoaded=true;
+  try{const j=await api({api:'options'});[['locList',j.locations],['ownList',j.owners]].forEach(([id,list])=>{const d=$(id);d.replaceChildren();(list||[]).forEach(v=>{const o=document.createElement('option');o.value=v;d.append(o);});});}
+  catch(e){optionsLoaded=false;}
+}
+function openEdit(a,c,status){
+  editing=true;loadOptions();
+  const f=el('form',undefined,'edit');f.noValidate=true;
+  const field=(label,value,list,ph,max)=>{const l=el('label',label),i=document.createElement('input');i.value=value&&value!=='-'?value:'';i.maxLength=max||150;if(list)i.setAttribute('list',list);i.placeholder=ph;i.autocomplete='off';l.append(i);f.append(l);return i;};
+  const loc=field('สถานที่',a.location,'locList','เช่น อาคาร 2 ชั้น 3 (สามเสน)');
+  const own=field('เจ้าของ (ผู้ใช้งาน)',a.owner,'ownList','เว้นว่าง = ไม่ระบุ');
+  const by=field('ชื่อผู้แก้ไข',cleanName($('who').value||stored('meaInspectorName')),'','ชื่อ-สกุล',60);by.autocomplete='name';
+  const row=el('div',undefined,'edit-actions'),cancel=el('button','ยกเลิก','cancel'),save=el('button','บันทึก','save');cancel.type='button';save.type='submit';row.append(cancel,save);
+  f.append(row,el('p','ระบบเก็บประวัติทุกครั้ง: ค่าเดิม → ค่าใหม่ · ผู้แก้ · เวลา','edit-note'));
+  cancel.onclick=()=>{editing=false;lastAt=Date.now();c.replaceWith(card(a,status));say('ยกเลิกการแก้ไข · เล็งป้ายถัดไปได้เลย');};
+  f.onsubmit=async e=>{
+    e.preventDefault();
+    const L=loc.value.replace(/\s+/g,' ').trim(),O=own.value.replace(/\s+/g,' ').trim(),B=cleanName(by.value);
+    if(!L){say('กรุณาใส่สถานที่','bad');loc.focus();return;}
+    if(!B){say('กรุณาใส่ชื่อผู้แก้ไข','bad');by.focus();return;}
+    store('meaInspectorName',B);if(!cleanName($('who').value))$('who').value=B;
+    save.disabled=cancel.disabled=true;say('กำลังบันทึกการแก้ไข…');
+    try{
+      const j=await api({api:'update',id:a.id,location:L,owner:O,by:B,rid:rid()});
+      editing=false;lastAt=Date.now();
+      c.replaceWith(card(j.asset||a,['ok',j.changed?'✓ บันทึกการแก้ไขแล้ว':'ข้อมูลเหมือนเดิม ไม่ได้บันทึก']));
+      say(j.changed?'บันทึกการแก้ไขแล้ว · เล็งป้ายถัดไปได้เลย':'ข้อมูลเหมือนเดิม · เล็งป้ายถัดไปได้เลย','good');
+    }catch(err){save.disabled=cancel.disabled=false;say(err.message,'bad');}
+  };
+  const btn=c.querySelector('.edit-btn');if(btn)btn.replaceWith(f);else c.append(f);
+  say('กำลังแก้ไข — หยุดสแกนชั่วคราว');loc.focus();
 }
 function pickList(items,onPick,note){
   const w=el('div',undefined,'picks');
@@ -10328,7 +10370,7 @@ async function doScan(key){
 function handle(text){
   const raw=String(text||'').trim(),now=Date.now();
   // ป้ายเดิมที่ยังค้างหน้ากล้อง: ไม่ส่งซ้ำภายใน 5 วินาที · ขณะรอให้แตะเลือกรายการ ไม่ส่งซ้ำเลยจนกว่าจะเลือกหรือเจอป้ายอื่น
-  if(busy||(raw===lastText&&(holdSame||now-lastAt<5000)))return;
+  if(busy||editing||(raw===lastText&&(holdSame||now-lastAt<5000)))return;
   const r=parseQr(raw);
   if(!r.id&&!r.code){if(now-lastWarn>2500){lastWarn=now;say('QR นี้ไม่ใช่ป้ายครุภัณฑ์ ลองป้ายอื่น','warn');}return;}
   lastText=raw;lastAt=now;holdSame=false;
