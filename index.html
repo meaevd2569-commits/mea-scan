@@ -5,48 +5,80 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="referrer" content="strict-origin">
 <meta name="theme-color" content="#083d46">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src blob: data:; media-src blob: mediastream:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src blob: data:; media-src blob: mediastream:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'">
 <title>สแกน QR ครุภัณฑ์ · MEA</title>
 <style>
 :root{font:16px Tahoma,Arial,sans-serif;color:#fff;background:#0b2a30}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
-header{background:#083d46;border-bottom:3px solid #ed9e40;padding:14px 16px calc(12px) 16px;padding-top:max(14px,env(safe-area-inset-top))}
-.bar{max-width:560px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+body{margin:0;min-height:100vh;min-height:100dvh}
+header{background:#083d46;border-bottom:3px solid #ed9e40;padding:12px 14px 12px;padding-top:max(12px,env(safe-area-inset-top))}
+.bar{max-width:560px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:10px}
 header small{display:block;font-size:10px;letter-spacing:2px;color:#b6d6da}
-h1{font-size:20px;margin:3px 0 0}
-#back{color:#fff;text-decoration:none;font-size:14px;border:1px solid #6d9ca3;border-radius:999px;padding:8px 13px;white-space:nowrap}
-#back[hidden]{display:none}
-#mode{max-width:560px;margin:10px auto 0;padding:9px 13px;border-radius:10px;background:#ed9e40;color:#1a3134;font-weight:700;font-size:14px;line-height:1.5}
-main{flex:1;width:100%;max-width:560px;margin:auto;padding:14px 14px max(18px,env(safe-area-inset-bottom))}
-.camera{position:relative;width:100%;aspect-ratio:3/4;max-height:64vh;background:#000;border-radius:18px;overflow:hidden}
+h1{font-size:19px;margin:3px 0 0}
+#back{color:#fff;text-decoration:none;font-size:12px;border:1px solid #6d9ca3;border-radius:999px;padding:7px 11px;white-space:nowrap}
+.tabs{max-width:560px;margin:10px auto 0;display:grid;grid-template-columns:1fr 1fr;background:#0b2a30;border-radius:12px;padding:4px;gap:4px}
+.tabs button{min-height:42px;border:0;border-radius:9px;background:transparent;color:#b9cfd2;font:inherit;font-weight:700;cursor:pointer}
+.tabs button[aria-selected="true"]{background:#ed9e40;color:#1a3134}
+main{max-width:560px;margin:auto;padding:12px 14px max(18px,env(safe-area-inset-bottom))}
+.stock{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 10px}
+.stock label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#b9cfd2}
+.stock select,.stock input{width:100%;min-height:44px;border:0;border-radius:10px;padding:8px 10px;font:inherit;font-size:15px;color:#183e44;background:#fff}
+.counts{grid-column:1/-1;margin:0;font-size:14px;font-weight:700;color:#ffe0ad;min-height:1em}
+.camera{position:relative;width:100%;aspect-ratio:4/3;max-height:42vh;background:#000;border-radius:16px;overflow:hidden}
 video{width:100%;height:100%;object-fit:cover;display:block}
 .frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-.frame i{width:64%;aspect-ratio:1;border-radius:16px;box-shadow:0 0 0 999px rgba(0,0,0,.38);outline:3px solid #ed9e40;outline-offset:-3px}
+.frame i{height:78%;aspect-ratio:1;border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.35);outline:3px solid #ed9e40;outline-offset:-3px}
 .frame.hit i{outline-color:#4cd28a}
-#message{margin:14px 0 0;padding:14px 15px;border-radius:12px;background:#1c4950;line-height:1.55;font-size:17px;min-height:54px;overflow-wrap:anywhere}
+#message{margin:10px 0 0;padding:11px 13px;border-radius:11px;background:#1c4950;line-height:1.5;font-size:16px;min-height:46px;overflow-wrap:anywhere}
 #message.good{background:#1f6b46}#message.warn{background:#77591f}#message.bad{background:#87392f}
-.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
-button,.button{flex:1 1 140px;min-height:52px;border:0;border-radius:12px;font:inherit;font-weight:700;cursor:pointer;background:#ed9e40;color:#1a3134;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;touch-action:manipulation}
-.secondary{background:#24535a;color:#fff}
-button[aria-pressed="true"]{background:#ffe39a}
+#result{margin-top:10px}
+.card{background:#fff;color:#183e44;border:3px solid #cfe0e2;border-radius:16px;padding:15px}
+.card.ok{border-color:#3aa76d}.card.bad{border-color:#c4533f}.card.info{border-color:#6aa9b2}
+.status{display:inline-block;margin:0 0 10px;padding:5px 11px;border-radius:999px;font-weight:700;font-size:14px;background:#e3f0f1;color:#0b5560}
+.card.ok .status{background:#e2f3e8;color:#1f6b46}.card.bad .status{background:#fbe3df;color:#8a2f22}
+.label{font-size:12px;color:#5b767a;margin:0 0 2px}
+.card h2{font-size:20px;line-height:1.4;margin:0 0 10px;overflow-wrap:anywhere}
+.where{background:#fff4e4;border:1px solid #f3cf9c;border-radius:12px;padding:10px 12px;margin:0 0 10px}
+.where strong{display:block;font-size:18px;line-height:1.45;color:#7a4300;overflow-wrap:anywhere}
+.refs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0}
+.refs div{background:#f2f7f7;border-radius:10px;padding:9px}
+.refs dt{font-size:12px;color:#5b767a}.refs dd{margin:3px 0 0;font-weight:700;font-size:17px;overflow-wrap:anywhere}
+.chip{font-size:12px;color:#46656a;margin:10px 0 0}
+.picks{display:grid;gap:7px}
+.pick{display:block;width:100%;text-align:left;border:0;background:#fff;color:#183e44;border-radius:12px;padding:10px 12px;font:inherit;cursor:pointer}
+.pick b{display:block;font-size:17px}.pick span{display:block;font-size:12px;color:#46656a;margin-top:2px}.pick.done{opacity:.55}
+.back-btn{width:100%;margin-top:8px;min-height:46px;border:1px solid #6d9ca3;border-radius:11px;background:transparent;color:#fff;font:inherit;font-weight:700}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.actions button,.actions .button{flex:1 1 130px;min-height:48px;border:0;border-radius:11px;font:inherit;font-weight:700;cursor:pointer;background:#24535a;color:#fff;display:flex;align-items:center;justify-content:center;padding:8px 12px;touch-action:manipulation}
+#start{background:#ed9e40;color:#1a3134}
+button[aria-pressed="true"]{background:#ffe39a!important;color:#1a3134!important}
 [hidden]{display:none!important}
-.muted{color:#b9cfd2;font-size:13px;line-height:1.6;margin:14px 2px 0}
+.muted{color:#b9cfd2;font-size:12px;line-height:1.6;margin:12px 2px 0}
 input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+@media(max-width:360px){.stock{grid-template-columns:1fr}.refs{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header><div class="bar"><div><small>MEA · บพ.1–6</small><h1>สแกน QR ครุภัณฑ์</h1></div><a id="back" href="#" hidden>← หน้าค้นหา</a></div><p id="mode" hidden></p></header>
+<header>
+  <div class="bar"><div><small>MEA · บพ.1–6</small><h1>สแกน QR ครุภัณฑ์</h1></div><a id="back" href="#">รายงาน / จัดการรอบ ↗</a></div>
+  <div class="tabs" role="tablist"><button id="tabLook" type="button" role="tab" aria-selected="true">ดูข้อมูล</button><button id="tabStock" type="button" role="tab" aria-selected="false">ตรวจนับ</button></div>
+</header>
 <main>
+  <section id="stockBar" class="stock" hidden>
+    <label>รอบตรวจ<select id="round" aria-label="รอบตรวจ"></select></label>
+    <label>ชื่อผู้ตรวจ<input id="who" maxlength="60" placeholder="พิมพ์ชื่อ-สกุล" autocomplete="name"></label>
+    <p id="counts" class="counts"></p>
+  </section>
   <div class="camera"><video id="video" playsinline muted autoplay></video><div class="frame" id="frame"><i></i></div></div>
   <p id="message" role="status" aria-live="polite">กำลังเปิดกล้อง…</p>
+  <section id="result" aria-live="polite"></section>
   <div class="actions">
     <button id="start" type="button" hidden>เปิดกล้อง</button>
-    <button id="torch" type="button" class="secondary" aria-pressed="false" hidden>ไฟฉาย</button>
-    <label class="button secondary" for="photo">ถ่ายรูป QR แทน</label>
+    <button id="torch" type="button" aria-pressed="false" hidden>ไฟฉาย</button>
+    <label class="button" for="photo">ถ่ายรูป QR แทน</label>
     <input id="photo" type="file" accept="image/*" capture="environment">
   </div>
-  <p class="muted">เล็งป้าย QR ให้อยู่ในกรอบสีส้ม ระบบจะเปิดข้อมูลครุภัณฑ์ให้เอง • ภาพจากกล้องอ่านในเครื่องนี้เท่านั้น ไม่ส่งรูปออกไป • หน้านี้ไม่มีข้อมูลครุภัณฑ์ ข้อมูลเปิดจากเว็บแอป Google ที่ต้องล็อกอิน</p>
+  <p class="muted">เล็งป้าย QR ให้อยู่ในกรอบส้ม สแกนต่อเนื่องได้ทีละป้าย • ภาพจากกล้องอ่านในเครื่องนี้เท่านั้น • ข้อมูลดึงจากเว็บแอปโดยไม่ใช้บัญชี Google จึงใช้ได้แม้ล็อกอินหลายบัญชี</p>
 </main>
 <script>
 /* jsQR (Apache-2.0) https://github.com/cozmo/jsQR @8e6a036 */
@@ -10153,84 +10185,182 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
 </script>
 <script>
 'use strict';
-// ที่อยู่เว็บแอปที่อนุญาตให้ส่งกลับ (Google Apps Script /exec หรือ /dev เท่านั้น)
-const APP_RE=/^https:\/\/script\.google\.com\/(?:a\/macros\/[A-Za-z0-9.-]+\/|macros\/)(?:u\/\d+\/)?s\/[A-Za-z0-9_-]{20,}\/(?:exec|dev)$/;
+// เว็บแอป Apps Script ที่ใช้ดึงข้อมูล (การทำให้ใช้งานได้ที่ตั้งสิทธิ์ "ทุกคน")
+const DEFAULT_APP='https://script.google.com/macros/s/AKfycbzSSKL478mvz4rN-Pd6D2cVTwliugu7FZGXuWperxlC9U9zqGO5rj8XCL8FvnNexsCA/exec';
+const APP_RE=/^https:\/\/script\.google\.com\/(?:a\/macros\/[A-Za-z0-9.-]+\/|macros\/)s\/[A-Za-z0-9_-]{20,}\/exec$/;
 const ID_RE=/MEA-BP[1-6]-\d{4}/i;
 // ป้ายรุ่นแรก: QR = "0123456789" + เลขสินทรัพย์ (หรือ "-") · หรือ QR ที่มีแค่เลขสินทรัพย์ล้วน
-const LEGACY_RE=/^0123456789[^\u0000-\u001f<>]{0,40}$/,NUMBER_RE=/^\d{6,20}$/;
+const LEGACY_RE=/^0123456789[^\u0000-\u001f<>]{0,40}$/,NUMBER_RE=/^\d{6,20}$/,PERIOD_RE=/^2[5-8]\d{2}-R[12]-BP[1-6]$/;
 const $=id=>document.getElementById(id);
 const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
-let stream=null,track=null,running=false,busy=false,timer=0,lastWarn=0,detector=null,detectorReady=null,torchOn=false;
+let stream=null,track=null,running=false,timer=0,detector=null,detectorReady=null,torchOn=false;
+let busy=false,lastText='',lastAt=0,lastWarn=0,mode='look',rounds=[],roundId='';
 
-function store(key,value){try{localStorage.setItem(key,value);}catch(e){}}
-function stored(key){try{return localStorage.getItem(key)||'';}catch(e){return '';}}
+function store(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function stored(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
 function say(text,cls){$('message').textContent=text;$('message').className=cls||'';}
+function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=text;if(cls)n.className=cls;return n;}
+function shown(v){const s=String(v==null?'':v).trim();return s&&s!=='-'?s:'—';}
+function cleanName(v){return String(v||'').replace(/[\u0000-\u001f<>]/g,'').replace(/\s+/g,' ').trim().slice(0,60);}
+function rid(){if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();const a=new Uint8Array(16);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('');}
 
-// เว็บแอปตั้งต้น (ใช้เมื่อเปิดหน้านี้ตรงจากบุ๊กมาร์ก) — ป้าย QR ที่พิมพ์ไว้ชี้ไปเว็บแอปชุดเก่า จึงใช้เฉพาะรหัสจากป้าย
-const DEFAULT_APP='https://script.google.com/macros/s/AKfycbzSSKL478mvz4rN-Pd6D2cVTwliugu7FZGXuWperxlC9U9zqGO5rj8XCL8FvnNexsCA/exec';
-// ใช้ URL ที่หน้าเว็บแอปส่งมาเสมอ (ไม่จำค่าเก่าในเครื่อง — กันกรณีการทำให้ใช้งานได้เดิมถูกเก็บไปแล้ว)
-let appUrl=(()=>{const a=new URLSearchParams(location.hash.slice(1)).get('app')||'';return APP_RE.test(a)?a:DEFAULT_APP;})();
-// โหมดตรวจนับ: เปิดจากหน้าตรวจนับ (#page=stock&period=2569-R1-BP4) → สแกนแล้วบันทึกพบในรอบนั้น
-const hashParams=new URLSearchParams(location.hash.slice(1)),PERIOD_RE=/^2[5-8]\d{2}-R[12]-BP[1-6]$/;
-const stockPeriod=hashParams.get('page')==='stock'&&PERIOD_RE.test(hashParams.get('period')||'')?hashParams.get('period'):'';
-const byName=stockPeriod?String(hashParams.get('by')||'').replace(/[\u0000-\u001f<>]/g,'').replace(/\s+/g,' ').trim().slice(0,60):'';
-function targetFor(r){return appUrl+'?'+(stockPeriod?'page=stock&period='+encodeURIComponent(stockPeriod)+'&':'')+(r.id?'id='+encodeURIComponent(r.id):'code='+encodeURIComponent(r.code))+(byName?'&by='+encodeURIComponent(byName):'');}
-if(appUrl){$('back').href=stockPeriod?appUrl+'?page=stock&period='+encodeURIComponent(stockPeriod)+(byName?'&by='+encodeURIComponent(byName):''):appUrl;$('back').hidden=false;}
-if(stockPeriod){const [y,r,d]=stockPeriod.split('-');document.querySelector('h1').textContent='สแกนตรวจนับ';$('back').textContent='← หน้าตรวจนับ';$('mode').textContent='โหมดตรวจนับ · บพ.'+d.slice(2)+' · ปี '+y+' รอบ '+r.slice(1)+(byName?' · ผู้ตรวจ '+byName:'')+' — สแกนแล้วบันทึก “พบ” ทันที';$('mode').hidden=false;document.title='สแกนตรวจนับ · MEA';}
+const H=new URLSearchParams(location.hash.slice(1));
+const appUrl=APP_RE.test(H.get('app')||'')?H.get('app'):DEFAULT_APP;
+let wantRound=PERIOD_RE.test(H.get('period')||'')?H.get('period'):stored('meaRound');
+$('back').href=appUrl+'?page=stock';
+$('who').value=cleanName(H.get('by')||stored('meaInspectorName'));
+if($('who').value)store('meaInspectorName',$('who').value);
 
-/** รับข้อความจาก QR: ได้ทั้ง URL ...exec?id=MEA-BP4-0001 และรหัสล้วน MEA-BP4-0001 */
-function parseQr(text){
-  const raw=String(text||'').trim();let id='',app='';
-  try{const u=new URL(raw);const base=u.origin+u.pathname;if(APP_RE.test(base))app=base;const m=(u.searchParams.get('id')||'').match(ID_RE);if(m)id=m[0];}catch(e){}
-  if(!id){const m=raw.match(ID_RE);if(m)id=m[0];}
-  const code=!id&&(LEGACY_RE.test(raw)||NUMBER_RE.test(raw))?raw:'';
-  return {id:id.toUpperCase(),code:code,app:app};
+/* ---------- เรียกข้อมูลจากเว็บแอป (ไม่ส่งบัญชี Google) ---------- */
+async function api(params){
+  const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),30000);
+  try{
+    const r=await fetch(appUrl+'?'+new URLSearchParams(params).toString(),{credentials:'omit',cache:'no-store',redirect:'follow',signal:ctrl.signal});
+    const text=await r.text();let j;
+    try{j=JSON.parse(text);}catch(e){throw Error('เว็บแอปยังไม่รองรับหน้าสแกนนี้ — ต้องอัปเดตโค้ด Apps Script และการทำให้ใช้งานได้เป็นเวอร์ชันใหม่');}
+    if(!j.ok)throw Error(j.error||'เกิดข้อผิดพลาด');
+    return j;
+  }catch(e){
+    if(e.name==='AbortError')throw Error('เครือข่ายช้า ลองสแกนอีกครั้ง');
+    if(e instanceof TypeError)throw Error('เชื่อมต่อเว็บแอปไม่ได้ — ตรวจอินเทอร์เน็ต หรือการทำให้ใช้งานได้ยังไม่ใช่เวอร์ชันใหม่ / สิทธิ์ยังไม่ใช่ "ทุกคน"');
+    throw e;
+  }finally{clearTimeout(t);}
 }
 
-function handle(text){
+/* ---------- โหมด ดูข้อมูล / ตรวจนับ ---------- */
+function setMode(m){
+  mode=m==='stock'?'stock':'look';store('meaMode',mode);
+  $('tabLook').setAttribute('aria-selected',String(mode==='look'));$('tabStock').setAttribute('aria-selected',String(mode==='stock'));
+  $('stockBar').hidden=mode!=='stock';$('result').replaceChildren();lastText='';
+  if(mode==='stock'){if(!rounds.length)loadRounds();else say('โหมดตรวจนับ · เล็ง QR ให้อยู่ในกรอบ');}
+  else say('โหมดดูข้อมูล · เล็ง QR ให้อยู่ในกรอบ');
+}
+async function loadRounds(){
+  const sel=$('round');sel.replaceChildren(new Option('กำลังโหลด…',''));sel.disabled=true;roundId='';
+  try{
+    const j=await api({api:'rounds'});rounds=j.rounds||[];sel.replaceChildren();
+    if(!rounds.length){sel.add(new Option('ยังไม่มีรอบที่เปิด',''));if(mode==='stock')say('ยังไม่มีรอบตรวจที่เปิดอยู่ — ผู้ดูแลต้องเปิดรอบก่อน','warn');return;}
+    rounds.forEach(r=>sel.add(new Option('บพ.'+String(r.department).replace(/^BP/,'')+' · '+r.year+' รอบ '+r.round,r.id)));
+    const pick=rounds.find(r=>r.id===wantRound)||rounds.find(r=>r.department===j.defaultDepartment)||rounds[0];
+    sel.value=pick.id;roundId=pick.id;store('meaRound',roundId);sel.disabled=false;
+    if(mode==='stock')say('โหมดตรวจนับ · เล็ง QR ให้อยู่ในกรอบ');
+  }catch(e){sel.replaceChildren(new Option('โหลดรอบไม่สำเร็จ — แตะเพื่อลองใหม่',''));sel.disabled=false;say(e.message,'bad');}
+}
+$('tabLook').onclick=()=>setMode('look');
+$('tabStock').onclick=()=>setMode('stock');
+$('round').onchange=()=>{if(!rounds.length){loadRounds();return;}roundId=$('round').value;wantRound=roundId;store('meaRound',roundId);$('counts').textContent='';$('result').replaceChildren();lastText='';};
+$('round').onfocus=()=>{if(!rounds.length&&!$('round').disabled)loadRounds();};
+['change','blur'].forEach(ev=>$('who').addEventListener(ev,()=>{$('who').value=cleanName($('who').value);store('meaInspectorName',$('who').value);}));
+
+/* ---------- แสดงผล ---------- */
+function card(a,status){
+  const c=el('article',undefined,'card'+(status?' '+status[0]:''));
+  if(status)c.append(el('p',status[1],'status'));
+  c.append(el('p','ชื่อครุภัณฑ์','label'),el('h2',shown(a.description)));
+  const w=el('div',undefined,'where');w.append(el('p','อยู่ที่','label'),el('strong',shown(a.location)));c.append(w);
+  const refs=el('dl',undefined,'refs');
+  [['สินทรัพย์',a.assetNo],['สินทรัพย์เดิม',a.oldAssetNo]].forEach(([k,v])=>{const d=el('div');d.append(el('dt',k),el('dd',shown(v)));refs.append(d);});
+  c.append(refs);
+  if(a.id)c.append(el('p','รหัสกลาง '+a.id+(a.department?' · บพ.'+String(a.department).replace(/^BP/,''):''),'chip'));
+  return c;
+}
+function pickList(items,onPick,note){
+  const w=el('div',undefined,'picks');
+  items.forEach(a=>{const b=el('button',undefined,'pick'+(a.found?' done':''));b.type='button';
+    const n=note?note(a):'';b.append(el('b','สินทรัพย์เดิม '+shown(a.oldAssetNo)),el('span',shown(a.description)+' · '+shown(a.location)),el('span',a.id+(n?' · '+n:'')));
+    b.onclick=()=>onPick(a);w.append(b);});
+  return w;
+}
+function showCounts(c){if(c)$('counts').textContent='พบแล้ว '+c.found+' / '+c.total+' · ยังไม่พบ '+c.remaining;}
+function showLookup(j){
+  const box=$('result');box.replaceChildren();
+  if(!j.total){say('ไม่พบ '+(j.query||'รหัสนี้')+' ในทะเบียน','warn');return;}
+  if(j.total===1){box.append(card(j.results[0]));say('อ่านได้ · เล็งป้ายถัดไปได้เลย','good');return;}
+  say(j.blank?'ป้ายนี้ไม่มีเลขสินทรัพย์ใน QR — แตะรายการที่ “สินทรัพย์เดิม” ตรงกับบนป้าย':'พบ '+j.total+' รายการ — แตะเพื่อดู','warn');
+  box.append(pickList(j.results,a=>{const back=el('button','← กลับไปเลือกรายการอื่น','back-btn');back.type='button';back.onclick=()=>showLookup(j);box.replaceChildren(card(a),back);say('เล็งป้ายถัดไปได้เลย','good');}));
+}
+function showScan(j){
+  const box=$('result');box.replaceChildren();
+  if(j.candidates){
+    showCounts(j.counts);
+    if(!j.candidates.length){say('ไม่พบรายการที่ตรงกับป้ายนี้','warn');return;}
+    say('ป้ายนี้ไม่มีเลขสินทรัพย์ใน QR — แตะรายการที่ “สินทรัพย์เดิม” ตรงกับบนป้าย เพื่อบันทึกพบ','warn');
+    const list=j.candidates.slice().sort((a,b)=>(a.found-b.found)||((!a.inRound)-(!b.inRound)));
+    box.append(pickList(list,a=>doScan({id:a.id}),a=>(a.found?'พบแล้ว':'')+(a.inRound?'':' ไม่อยู่ในรอบนี้')));
+    return;
+  }
+  const r=j.result;showCounts(r.counts);
+  const st=r.kind==='found'?['ok','✓ บันทึกพบแล้ว']:r.kind==='duplicate'?['info','พบแล้วก่อนหน้านี้ · ไม่นับซ้ำ']:r.kind==='replayed'?['info','บันทึกไว้แล้ว']:['bad',(r.issue||'ไม่ตรงทะเบียน')+' · ไม่นับ'];
+  box.append(card(j.detail||{id:r.assetId},st));
+  if(r.kind==='found')say('บันทึกแล้ว · เล็งป้ายถัดไปได้เลย','good');
+  else if(r.kind==='issue')say('ไม่นับ — '+r.issue,'bad');
+  else say('ไม่นับซ้ำ · เล็งป้ายถัดไปได้เลย');
+}
+
+/* ---------- อ่าน QR ---------- */
+function parseQr(text){
+  const raw=String(text||'').trim();let id='';
+  try{const u=new URL(raw);const m=(u.searchParams.get('id')||'').match(ID_RE);if(m)id=m[0];}catch(e){}
+  if(!id){const m=raw.match(ID_RE);if(m)id=m[0];}
+  const code=!id&&(LEGACY_RE.test(raw)||NUMBER_RE.test(raw))?raw:'';
+  return {id:id.toUpperCase(),code:code};
+}
+async function doLookup(code){
+  busy=true;$('frame').classList.add('hit');say('กำลังค้นข้อมูล…');
+  try{showLookup(await api({api:'lookup',code:code}));}
+  catch(e){say(e.message,'bad');lastText='';}
+  finally{busy=false;$('frame').classList.remove('hit');}
+}
+async function doScan(key){
   if(busy)return;
-  const r=parseQr(text);
-  if(!r.id&&!r.code){if(Date.now()-lastWarn>2500){lastWarn=Date.now();say('QR นี้ไม่ใช่ป้ายครุภัณฑ์ (ต้องเป็นรหัส MEA-BP…) ลองป้ายอื่น','warn');}return;}
-  busy=true;$('frame').classList.add('hit');
-  try{if(navigator.vibrate)navigator.vibrate(90);}catch(e){}
-  say('อ่านได้ '+(r.id||'ป้ายเลขสินทรัพย์')+(stockPeriod?' — กำลังบันทึกพบ…':' — กำลังเปิดข้อมูล…'),'good');
-  stopCamera();
-  location.assign(targetFor(r));
+  if(!roundId){say(rounds.length?'เลือกรอบตรวจก่อน':'ยังไม่มีรอบตรวจที่เปิดอยู่','bad');lastText='';if(!rounds.length)loadRounds();return;}
+  const who=cleanName($('who').value);
+  if(!who){say('พิมพ์ชื่อผู้ตรวจก่อนสแกน (ใส่ครั้งเดียว เครื่องจำไว้)','bad');$('who').focus();lastText='';return;}
+  busy=true;$('frame').classList.add('hit');say('กำลังบันทึก…');
+  try{showScan(await api(Object.assign({api:'scan',period:roundId,by:who,rid:rid()},key)));}
+  catch(e){say(e.message,'bad');lastText='';}
+  finally{busy=false;$('frame').classList.remove('hit');}
+}
+function handle(text){
+  const raw=String(text||'').trim(),now=Date.now();
+  if(busy||(raw===lastText&&now-lastAt<5000))return;
+  const r=parseQr(raw);
+  if(!r.id&&!r.code){if(now-lastWarn>2500){lastWarn=now;say('QR นี้ไม่ใช่ป้ายครุภัณฑ์ ลองป้ายอื่น','warn');}return;}
+  lastText=raw;lastAt=now;
+  try{if(navigator.vibrate)navigator.vibrate(60);}catch(e){}
+  const key=r.id?{id:r.id}:{code:r.code};
+  if(mode==='stock')doScan(key);else doLookup(r.id||r.code);
 }
 
 function makeDetector(){
   if(!detectorReady)detectorReady=(async()=>{try{if('BarcodeDetector' in window){const f=await BarcodeDetector.getSupportedFormats();if(f.includes('qr_code'))detector=new BarcodeDetector({formats:['qr_code']});}}catch(e){detector=null;}})();
   return detectorReady;
 }
-
 function jsqrFrom(source,width,height,maxSide,attempts){
-  // อ่านเฉพาะสี่เหลี่ยมกลางภาพ (ตรงกรอบส้ม) ให้เร็วและแม่นขึ้น
   const side=Math.min(width,height),sx=(width-side)/2,sy=(height-side)/2,size=Math.min(side,maxSide);
   canvas.width=size;canvas.height=size;ctx.drawImage(source,sx,sy,side,side,0,0,size,size);
   let img=ctx.getImageData(0,0,size,size),qr=jsQR(img.data,size,size,{inversionAttempts:attempts});
   if(qr)return qr.data;
-  if(attempts==='attemptBoth'){ // รูปถ่าย: ลองทั้งภาพอีกรอบ
+  if(attempts==='attemptBoth'){
     const scale=Math.min(1,maxSide/Math.max(width,height)),w=Math.round(width*scale),h=Math.round(height*scale);
     canvas.width=w;canvas.height=h;ctx.drawImage(source,0,0,w,h);img=ctx.getImageData(0,0,w,h);qr=jsQR(img.data,w,h,{inversionAttempts:attempts});
     if(qr)return qr.data;
   }
   return '';
 }
-
 async function tick(){
-  if(!running||busy)return;
+  if(!running)return;
   const v=$('video');
   try{
-    if(v.readyState>=2&&v.videoWidth){
+    if(!busy&&v.readyState>=2&&v.videoWidth){
       let text='';
       if(detector){try{const codes=await detector.detect(v);if(codes.length)text=codes[0].rawValue;}catch(e){detector=null;}}
       else text=jsqrFrom(v,v.videoWidth,v.videoHeight,720,'dontInvert');
       if(text)handle(text);
     }
   }catch(e){}
-  if(running&&!busy)timer=setTimeout(tick,detector?90:140);
+  if(running)timer=setTimeout(tick,detector?110:160);
 }
-
 function cameraError(e){
   const n=e&&e.name;
   if(n==='NotAllowedError'||n==='SecurityError')return 'ยังไม่ได้อนุญาตให้ใช้กล้อง — กดอนุญาตกล้องสำหรับหน้านี้ (iPhone: ตั้งค่า › Safari › กล้อง › อนุญาต) แล้วกด “เปิดกล้อง” หรือใช้ “ถ่ายรูป QR แทน”';
@@ -10238,31 +10368,26 @@ function cameraError(e){
   if(n==='NotReadableError'||n==='AbortError')return 'กล้องถูกแอปอื่นใช้อยู่ ปิดแอปกล้อง/วิดีโอคอลก่อน แล้วกด “เปิดกล้อง”';
   return 'เปิดกล้องไม่ได้ ('+(e&&e.message||n||'ไม่ทราบสาเหตุ')+') ใช้ “ถ่ายรูป QR แทน”';
 }
-
 async function startCamera(){
-  if(running||busy)return;
+  if(running)return;
   $('start').hidden=true;
   if(!window.isSecureContext||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){say('เบราว์เซอร์นี้เปิดกล้องสดไม่ได้ ใช้ “ถ่ายรูป QR แทน” (แนะนำ Chrome หรือ Safari)','bad');return;}
   try{
-    say('กำลังเปิดกล้อง…');
     await makeDetector();
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
     const v=$('video');v.srcObject=stream;await v.play();
     track=stream.getVideoTracks()[0]||null;torchOn=false;
     let caps={};try{caps=track&&track.getCapabilities?track.getCapabilities():{};}catch(e){}
     $('torch').hidden=!caps.torch;$('torch').setAttribute('aria-pressed','false');
-    running=true;$('frame').classList.remove('hit');
-    say('เล็ง QR ให้อยู่ในกรอบส้ม');
+    running=true;if(!busy&&/กำลังเปิดกล้อง/.test($('message').textContent))say(mode==='stock'?'โหมดตรวจนับ · เล็ง QR ให้อยู่ในกรอบ':'โหมดดูข้อมูล · เล็ง QR ให้อยู่ในกรอบ');
     tick();
   }catch(e){stopCamera();say(cameraError(e),'bad');$('start').hidden=false;}
 }
-
 function stopCamera(){
   running=false;clearTimeout(timer);
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
   track=null;$('video').srcObject=null;$('torch').hidden=true;
 }
-
 async function readPhoto(file){
   if(!file)return;
   if(file.size>25*1024*1024){say('รูปใหญ่เกินไป ลองถ่ายใหม่','bad');return;}
@@ -10274,17 +10399,22 @@ async function readPhoto(file){
     let text='';
     if(detector){try{const codes=await detector.detect(img);if(codes.length)text=codes[0].rawValue;}catch(e){}}
     for(const side of [1400,2400]){if(text)break;text=jsqrFrom(img,img.naturalWidth,img.naturalHeight,side,'attemptBoth');}
-    if(text)handle(text);else say('อ่าน QR จากรูปไม่ได้ ถ่ายให้ใกล้ขึ้น ชัด และเห็น QR ครบทั้งกรอบ','bad');
+    if(text){lastText='';handle(text);}else say('อ่าน QR จากรูปไม่ได้ ถ่ายให้ใกล้ขึ้น ชัด และเห็น QR ครบทั้งกรอบ','bad');
   }catch(e){say('เปิดรูปไม่ได้: '+(e.message||e),'bad');}
   finally{URL.revokeObjectURL(url);$('photo').value='';}
 }
 
 $('start').onclick=startCamera;
 $('torch').onclick=async()=>{if(!track)return;try{torchOn=!torchOn;await track.applyConstraints({advanced:[{torch:torchOn}]});$('torch').setAttribute('aria-pressed',String(torchOn));}catch(e){torchOn=false;$('torch').setAttribute('aria-pressed','false');say('เปิดไฟฉายไม่ได้ในเครื่องนี้','warn');}};
-$('photo').onchange=e=>{stopCamera();readPhoto(e.target.files[0]).finally(()=>{if(!busy)$('start').hidden=false;});};
-document.addEventListener('visibilitychange',()=>{if(document.hidden)stopCamera();else if(!busy)startCamera();});
+$('photo').onchange=e=>{stopCamera();readPhoto(e.target.files[0]).finally(()=>{if(!document.hidden)startCamera();});};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopCamera();else startCamera();});
 window.addEventListener('pagehide',stopCamera);
-window.addEventListener('pageshow',e=>{if(e.persisted){busy=false;$('frame').classList.remove('hit');startCamera();}});
+window.addEventListener('pageshow',e=>{if(e.persisted)startCamera();});
+
+// เปิดจากหน้าตรวจนับ (#page=stock) → โหมดตรวจนับ · เปิดจากหน้าดูข้อมูล (#app=… ไม่มี page) → ดูข้อมูล · เปิดตรง → ใช้โหมดล่าสุด
+setMode(H.get('page')==='stock'?'stock':(H.get('app')?'look':(stored('meaMode')==='stock'?'stock':'look')));
+if(mode!=='stock')loadRounds();   // โหลดรอบไว้ล่วงหน้า + ปลุกเว็บแอปให้ตอบเร็วขึ้น
+say('กำลังเปิดกล้อง…');
 startCamera();
 </script>
 </body>
