@@ -10165,14 +10165,15 @@ function stored(key){try{return localStorage.getItem(key)||'';}catch(e){return '
 function say(text,cls){$('message').textContent=text;$('message').className=cls||'';}
 
 // เว็บแอปตั้งต้น (ใช้เมื่อเปิดหน้านี้ตรงจากบุ๊กมาร์ก) — ป้าย QR ที่พิมพ์ไว้ชี้ไปเว็บแอปชุดเก่า จึงใช้เฉพาะรหัสจากป้าย
-const DEFAULT_APP='https://script.google.com/macros/s/AKfycby-gW2-Hi8xvLcqswW3isq4VJ6F9XAd72OiwZDnbaN4nY2e95wnGwRKB0tNGJtpRTuX/exec';
+const DEFAULT_APP='https://script.google.com/macros/s/AKfycby07pOk5tTcJjSx3_C0pQwAjz0xMxzwaaDPqjJJGDVwu3ExukaPJUAjAuhmcl-Ty1Sq/exec';
 let appUrl=(()=>{const a=new URLSearchParams(location.hash.slice(1)).get('app')||'';if(APP_RE.test(a)){store('meaScanApp',a);return a;}const s=stored('meaScanApp');return APP_RE.test(s)?s:DEFAULT_APP;})();
 // โหมดตรวจนับ: เปิดจากหน้าตรวจนับ (#page=stock&period=2569-R1-BP4) → สแกนแล้วบันทึกพบในรอบนั้น
 const hashParams=new URLSearchParams(location.hash.slice(1)),PERIOD_RE=/^2[5-8]\d{2}-R[12]-BP[1-6]$/;
 const stockPeriod=hashParams.get('page')==='stock'&&PERIOD_RE.test(hashParams.get('period')||'')?hashParams.get('period'):'';
-function targetFor(id){return appUrl+'?'+(stockPeriod?'page=stock&period='+encodeURIComponent(stockPeriod)+'&':'')+'id='+encodeURIComponent(id);}
-if(appUrl){$('back').href=stockPeriod?appUrl+'?page=stock&period='+encodeURIComponent(stockPeriod):appUrl;$('back').hidden=false;}
-if(stockPeriod){const [y,r,d]=stockPeriod.split('-');document.querySelector('h1').textContent='สแกนตรวจนับ';$('back').textContent='← หน้าตรวจนับ';$('mode').textContent='โหมดตรวจนับ · บพ.'+d.slice(2)+' · ปี '+y+' รอบ '+r.slice(1)+' — สแกนแล้วบันทึก “พบ” ทันที';$('mode').hidden=false;document.title='สแกนตรวจนับ · MEA';}
+const byName=stockPeriod?String(hashParams.get('by')||'').replace(/[\u0000-\u001f<>]/g,'').replace(/\s+/g,' ').trim().slice(0,60):'';
+function targetFor(id){return appUrl+'?'+(stockPeriod?'page=stock&period='+encodeURIComponent(stockPeriod)+'&':'')+'id='+encodeURIComponent(id)+(byName?'&by='+encodeURIComponent(byName):'');}
+if(appUrl){$('back').href=stockPeriod?appUrl+'?page=stock&period='+encodeURIComponent(stockPeriod)+(byName?'&by='+encodeURIComponent(byName):''):appUrl;$('back').hidden=false;}
+if(stockPeriod){const [y,r,d]=stockPeriod.split('-');document.querySelector('h1').textContent='สแกนตรวจนับ';$('back').textContent='← หน้าตรวจนับ';$('mode').textContent='โหมดตรวจนับ · บพ.'+d.slice(2)+' · ปี '+y+' รอบ '+r.slice(1)+(byName?' · ผู้ตรวจ '+byName:'')+' — สแกนแล้วบันทึก “พบ” ทันที';$('mode').hidden=false;document.title='สแกนตรวจนับ · MEA';}
 
 /** รับข้อความจาก QR: ได้ทั้ง URL ...exec?id=MEA-BP4-0001 และรหัสล้วน MEA-BP4-0001 */
 function parseQr(text){
