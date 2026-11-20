@@ -78,6 +78,16 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .transfer select,.transfer input{min-height:44px;font:inherit;font-size:16px;border:1px solid #a9bfc2;border-radius:9px;padding:8px 10px;background:#fff;color:#183e44}
 .transfer button{min-height:48px;font:inherit;font-weight:bold;border:0;border-radius:10px;background:#087483;color:#fff;cursor:pointer}.transfer button:disabled{opacity:.55}
 .transfer p{margin:0;font-size:13px;line-height:1.5}
+.manual{margin:10px 0 0}.manual label{display:block;font-size:12px;color:#b9cfd2;margin:0 0 4px}
+.manual-row{display:grid;grid-template-columns:1fr auto;gap:8px}
+.manual input{min-width:0;min-height:46px;border:0;border-radius:10px;padding:8px 12px;font:inherit;font-size:16px;color:#183e44;background:#fff}
+.manual button{min-height:46px;border:0;border-radius:10px;padding:0 18px;font:inherit;font-weight:700;background:#ed9e40;color:#1a3134;cursor:pointer}
+.undo{margin-top:12px;border:1px solid #e3b7ae;border-radius:11px;background:#fdf5f3;color:#183e44}
+.undo>summary{cursor:pointer;min-height:46px;display:flex;align-items:center;padding:0 12px;font-weight:bold;color:#8a2f22}
+.undo form{padding:0 12px 12px;display:grid;gap:8px}.undo label{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.undo input{min-height:44px;font:inherit;font-size:16px;border:1px solid #a9bfc2;border-radius:9px;padding:8px 10px;background:#fff;color:#183e44}
+.undo button{min-height:48px;font:inherit;font-weight:bold;border:0;border-radius:10px;background:#a8402f;color:#fff;cursor:pointer}.undo button:disabled{opacity:.55}
+.undo p{margin:0;font-size:13px;line-height:1.5}
 .pick-filters{background:#e7f0f1;color:#183e44;border-radius:12px;padding:12px}.pick-filters label{display:block;font-size:14px;margin-bottom:9px}.pick-filters p{font-size:13px;margin:4px 0}.pick-empty{padding:10px}
 </style>
 </head>
@@ -94,9 +104,10 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
     <p id="counts" class="counts"></p>
   </section>
   <div class="camera"><video id="video" playsinline muted autoplay></video><div class="frame" id="frame"><i></i></div></div>
+  <form id="manual" class="manual" novalidate autocomplete="off"><label for="manualQ">พิมพ์เลขครุภัณฑ์เอง (QR อ่านไม่ได้ / ไม่มีป้าย)</label><div class="manual-row"><input id="manualQ" type="search" maxlength="60" placeholder="รหัสกลาง / เลขสินทรัพย์ / เลขเดิม" enterkeyhint="search" spellcheck="false" autocapitalize="characters" autocomplete="off"><button type="submit">ค้นหา</button></div></form>
   <p id="message" role="status" aria-live="polite">กำลังเปิดกล้อง…</p>
   <section id="result" aria-live="polite"></section>
-  <datalist id="locList"></datalist><datalist id="ownList"></datalist>
+  <datalist id="locList"></datalist><datalist id="ownList"></datalist><datalist id="undoReasons"><option value="สแกนผิดชิ้น"></option><option value="เลือกรายการผิด"></option><option value="ป้ายติดผิดชิ้น"></option><option value="ยังไม่ได้เห็นของจริง"></option></datalist>
   <div class="actions">
     <button id="start" type="button" hidden>เปิดกล้อง</button>
     <button id="torch" type="button" aria-pressed="false" hidden>ไฟฉาย</button>
@@ -104,7 +115,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
     <input id="photo" type="file" accept="image/*" capture="environment">
   </div>
   <p class="muted">เล็งป้าย QR ให้อยู่ในกรอบส้ม สแกนต่อเนื่องได้ทีละป้าย • ภาพจากกล้องอ่านในเครื่องนี้เท่านั้น • ข้อมูลดึงจากเว็บแอปโดยไม่ใช้บัญชี Google จึงใช้ได้แม้ล็อกอินหลายบัญชี</p>
-<p class="muted">V9.3 · เลือกเจ้าของ / กำลังใช้งาน / ชำรุด / รอจำหน่าย</p></main>
+<p class="muted">V9.6 · พิมพ์เลขครุภัณฑ์เองได้ · ยกเลิกการพบที่บันทึกผิดได้ (ใส่ชื่อ + เหตุผล)</p></main>
 <script>
 /* jsQR (Apache-2.0) https://github.com/cozmo/jsQR @8e6a036 */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -10219,7 +10230,7 @@ const LEGACY_RE=/^0123456789[^\u0000-\u001f<>]{0,40}$/,NUMBER_RE=/^\d{6,20}$/,PE
 const $=id=>document.getElementById(id);
 const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
 let stream=null,track=null,running=false,timer=0,detector=null,detectorReady=null,torchOn=false;
-let busy=false,lastText='',lastAt=0,lastWarn=0,holdSame=false,editing=false,optionsLoaded=false,mode='look',rounds=[],roundId='';
+let busy=false,lastText='',lastAt=0,lastWarn=0,holdSame=false,editing=false,optionsLoaded=false,mode='look',rounds=[],roundId='',undoOpen=false;
 
 function store(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 function stored(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
@@ -10250,12 +10261,12 @@ async function api(params){
   try{
     const options={credentials:'omit',cache:'no-store',redirect:'follow',signal:ctrl.signal};
     let url=appUrl;
-    if(params.api==='details'){options.method='POST';options.headers={'Content-Type':'text/plain;charset=utf-8'};options.body=JSON.stringify(params);}
+    if(params.api==='details'||params.api==='undo'){options.method='POST';options.headers={'Content-Type':'text/plain;charset=utf-8'};options.body=JSON.stringify(params);}
     else url+='?'+new URLSearchParams(params).toString();
     const r=await fetch(url,options);
     const text=await r.text();let j;
     try{j=JSON.parse(text);}catch(e){throw Error('เว็บแอปยังไม่รองรับหน้าสแกนนี้ — ต้องอัปเดตโค้ด Apps Script และการทำให้ใช้งานได้เป็นเวอร์ชันใหม่');}
-    if(!j.ok)throw Error(j.error||'เกิดข้อผิดพลาด');
+    if(!j.ok)throw Error(j.error==='ไม่รู้จักคำสั่ง'||j.error==='ไม่รองรับคำสั่งบันทึกนี้'?'เว็บแอปยังเป็นรุ่นเก่า — ต้องอัปเดตโค้ด Apps Script (V9.6) และทำให้ใช้งานได้เป็นเวอร์ชันใหม่':j.error||'เกิดข้อผิดพลาด');
     return j;
   }catch(e){
     if(e.name==='AbortError')throw Error('เครือข่ายช้า ลองสแกนอีกครั้ง');
@@ -10275,7 +10286,7 @@ function setMode(m){
 async function loadRounds(){
   const sel=$('round');sel.replaceChildren(new Option('กำลังโหลด…',''));sel.disabled=true;roundId='';
   try{
-    const j=await api({api:'rounds'});rounds=(j.rounds||[]).filter(r=>r.department===departmentSelect.value);sel.replaceChildren();
+    const j=await api({api:'rounds'});undoOpen=j.undoOpen===true;rounds=(j.rounds||[]).filter(r=>r.department===departmentSelect.value);sel.replaceChildren();
     if(!rounds.length){sel.add(new Option('ยังไม่มีรอบที่เปิด',''));if(mode==='stock')say('ยังไม่มีรอบตรวจที่เปิดอยู่ — ผู้ดูแลต้องเปิดรอบก่อน','warn');return;}
     rounds.forEach(r=>sel.add(new Option('บพ.'+String(r.department).replace(/^BP/,'')+' · '+r.year+' รอบ '+r.round,r.id)));
     const pick=rounds.find(r=>r.id===wantRound)||rounds.find(r=>r.department===j.defaultDepartment)||rounds[0];
@@ -10421,7 +10432,7 @@ function pickList(items,onPick,note){
     count.textContent='แสดง '+rows.length+' จาก '+items.length+' รายการ · เทียบเลขเดิมบนป้ายก่อนเลือก';
     if(!rows.length)list.append(el('p','ไม่พบตามตัวกรอง ลองล้างคำค้นหรือเลือกเจ้าของทั้งหมด','pick-empty'));
     rows.forEach(a=>{const b=el('button',undefined,'pick'+(a.found?' done':''));b.type='button';const n=note?note(a):'';
-      b.append(el('b','สินทรัพย์เดิม '+shown(a.oldAssetNo)),el('span','เจ้าของ: '+shown(a.owner)),el('span',shown(a.description)+' · '+shown(a.location)),el('span',a.id+(n?' · '+n:'')));
+      b.append(el('b','สินทรัพย์เดิม '+shown(a.oldAssetNo)));if(shown(a.assetNo)!=='—')b.append(el('span','สินทรัพย์ '+a.assetNo));b.append(el('span','เจ้าของ: '+shown(a.owner)),el('span',shown(a.description)+' · '+shown(a.location)),el('span',a.id+(n?' · '+n:'')));
       b.onclick=()=>onPick(a);list.append(b);
     });
   };search.oninput=render;owner.onchange=render;render();return w;
@@ -10436,7 +10447,7 @@ function showLookup(j){
   box.append(pickList(j.results,a=>{holdSame=false;lastAt=Date.now();const back=el('button','← กลับไปเลือกรายการอื่น','back-btn');back.type='button';back.onclick=()=>showLookup(j);box.replaceChildren(card(a),back);say('เล็งป้ายถัดไปได้เลย','good');}));
   holdSame=true;box.scrollIntoView({behavior:'smooth',block:'start'});
 }
-function showScan(j){
+function showScan(j,period){
   const box=$('result');box.replaceChildren();
   if(j.candidates){
     showCounts(j.counts);
@@ -10449,11 +10460,76 @@ function showScan(j){
   }
   const r=j.result;showCounts(r.counts);
   const st=r.kind==='found'?['ok','✓ บันทึกพบแล้ว']:r.kind==='duplicate'?['info','พบแล้วก่อนหน้านี้ · ไม่นับซ้ำ']:r.kind==='replayed'?['info','บันทึกไว้แล้ว']:['bad',(r.issue||'ไม่ตรงทะเบียน')+' · ไม่นับ'];
-  box.append(card(j.detail||{id:r.assetId},st));
+  const a=j.detail||{id:r.assetId},c=card(a,st);
+  // V9.6: บันทึกพบผิดชิ้น → ยกเลิกได้ทันทีจากการ์ดนี้ (หรือพิมพ์/สแกนชิ้นนั้นอีกครั้ง แล้วยกเลิก)
+  if(undoOpen&&period&&r.event&&r.event.action==='FOUND'&&['found','duplicate','replayed'].includes(r.kind))c.insertBefore(undoBox(a,r.event,period,c),c.querySelector('.condition-editor')||c.querySelector('.next-asset'));
+  box.append(c);
   if(r.kind==='found')say('บันทึกแล้ว · เล็งป้ายถัดไปได้เลย','good');
   else if(r.kind==='issue')say('ไม่นับ — '+r.issue,'bad');
   else say('ไม่นับซ้ำ · เล็งป้ายถัดไปได้เลย');
 }
+
+/* ---------- V9.6 ยกเลิก "พบ" ที่บันทึกผิด (ไม่ลบประวัติ: บันทึกการยกเลิก + ชื่อ + เหตุผล) ---------- */
+function undoBox(a,ev,period,c){
+  const box=el('details',undefined,'undo');box.append(el('summary','↶ ยกเลิกการพบ (บันทึกผิดชิ้น)'));
+  const f=el('form');f.noValidate=true;
+  const rl=el('label','เหตุผล'),reason=el('input');reason.type='text';reason.maxLength=200;reason.value='สแกนผิดชิ้น';reason.setAttribute('list','undoReasons');reason.autocomplete='off';rl.append(reason);
+  const bl=el('label','ชื่อผู้ยกเลิก'),by=el('input');by.type='text';by.maxLength=60;by.value=cleanName($('who').value||stored('meaInspectorName'));by.autocomplete='name';bl.append(by);
+  const go=el('button','ยืนยันยกเลิกการพบ');go.type='submit';
+  const msg=el('p','รายการจะกลับเป็น “ยังไม่พบ” ในรอบนี้ แล้วสแกนใหม่ได้ · ระบบเก็บประวัติการยกเลิกพร้อมชื่อและเหตุผล');msg.setAttribute('role','status');
+  f.append(rl,bl,go,msg);box.append(f);
+  let pending=null,lastKey='';
+  f.onsubmit=async e=>{
+    e.preventDefault();if(go.disabled||busy)return;
+    const R=reason.value.replace(/\s+/g,' ').trim(),B=cleanName(by.value);
+    if(!R){msg.textContent='กรุณาใส่เหตุผล';reason.focus();return;}
+    if(!B){msg.textContent='กรุณาใส่ชื่อผู้ยกเลิก';by.focus();return;}
+    if(!confirm('ยกเลิกการพบ '+a.id+' ?\n'+shown(a.description)+'\nรายการจะกลับเป็น “ยังไม่พบ”'))return;
+    const p={api:'undo',period:period,id:a.id,expected:ev.eventId,reason:R,by:B},key=JSON.stringify(p);
+    if(!pending||key!==lastKey){pending={...p,rid:rid()};lastKey=key;}
+    go.disabled=true;msg.textContent='กำลังยกเลิก…';busy=true;
+    try{
+      const j=await api(pending);pending=null;
+      store('meaInspectorName',B);if(!cleanName($('who').value))$('who').value=B;
+      if(period===roundId)showCounts(j.counts);
+      c.replaceWith(card(a,['info','↶ ยกเลิกการพบแล้ว · กลับเป็น “ยังไม่พบ”']));
+      lastText='';holdSame=false;
+      say('ยกเลิกการพบ '+a.id+' แล้ว · ถ้าเป็นชิ้นนี้จริง สแกนหรือพิมพ์เลขใหม่ได้','good');
+    }catch(err){msg.textContent='ยกเลิกไม่สำเร็จ: '+err.message;go.disabled=false;}
+    finally{busy=false;}
+  };
+  return box;
+}
+
+/* ---------- V9.6 พิมพ์เลขครุภัณฑ์เอง: รหัสกลางเต็ม = เหมือนสแกน QR · อื่น ๆ ค้นบางส่วนแล้วแตะเลือก ---------- */
+async function manualSearch(){
+  if(busy)return;
+  const q=$('manualQ').value.replace(/\s+/g,' ').trim();
+  if(!q){say('พิมพ์รหัสกลาง เลขสินทรัพย์ หรือเลขเดิมก่อนกดค้นหา','warn');$('manualQ').focus();return;}
+  $('manualQ').blur();editing=false;holdSame=false;lastText='';
+  const id=(q.toUpperCase().match(ID_RE)||[''])[0];
+  if(id&&q.replace(/\s/g,'').toUpperCase()===id){if(mode==='stock')doScan({id:id});else doLookup(id);return;}
+  const stock=mode==='stock',params={api:'search',q:q};
+  if(stock&&roundId)params.period=roundId;else params.department=departmentSelect.value;
+  busy=true;say('กำลังค้นหา “'+q+'” …');
+  try{showSearch(await api(params),q,stock);}
+  catch(e){say(e.message,'bad');}
+  finally{busy=false;lastAt=Date.now();}
+}
+function showSearch(j,q,stock){
+  const box=$('result');box.replaceChildren();
+  if(stock&&j.counts)showCounts(j.counts);
+  if(!j.total){say('ไม่พบ “'+q+'” ในทะเบียน — ตรวจตัวเลขอีกครั้ง หรือพิมพ์บางส่วน (อย่างน้อย 3 ตัว)','warn');return;}
+  const more=j.truncated?' (แสดง '+j.results.length+' รายการแรก พิมพ์เพิ่มเพื่อจำกัดผล)':'';
+  say((stock?'พบ '+j.total+' รายการ — แตะรายการที่ตรงกับของจริง ระบบจึงบันทึกพบ':'พบ '+j.total+' รายการ — แตะเพื่อดู')+more,'warn');
+  box.append(pickList(j.results,a=>{
+    if(stock){doScan({id:a.id});return;}
+    lastAt=Date.now();const back=el('button','← กลับไปผลค้นหา','back-btn');back.type='button';back.onclick=()=>showSearch(j,q,stock);
+    box.replaceChildren(card(a),back);say('เล็งป้ายถัดไป หรือพิมพ์เลขใหม่ได้เลย','good');
+  },stock?a=>(a.found?'พบแล้ว':'')+(a.inRound===false?' ไม่อยู่ในรอบนี้':''):null));
+  box.scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('manual').onsubmit=e=>{e.preventDefault();manualSearch();};
 
 /* ---------- อ่าน QR ---------- */
 function parseQr(text){
@@ -10475,14 +10551,15 @@ async function doScan(key){
   const who=cleanName($('who').value);
   if(!who){say('พิมพ์ชื่อผู้ตรวจก่อนสแกน (ใส่ครั้งเดียว เครื่องจำไว้)','bad');$('who').focus();lastText='';return;}
   busy=true;$('frame').classList.add('hit');say('กำลังบันทึก…');
-  try{showScan(await api(Object.assign({api:'scan',period:roundId,by:who,rid:rid()},key)));}
+  const period=roundId;
+  try{showScan(await api(Object.assign({api:'scan',period:period,by:who,rid:rid()},key)),period);}
   catch(e){say(e.message,'bad');lastText='';holdSame=false;}
   finally{busy=false;lastAt=Date.now();$('frame').classList.remove('hit');}
 }
 function handle(text){
   const raw=String(text||'').trim(),now=Date.now();
   // ป้ายเดิมที่ยังค้างหน้ากล้อง: ไม่ส่งซ้ำภายใน 5 วินาที · ขณะรอให้แตะเลือกรายการ ไม่ส่งซ้ำเลยจนกว่าจะเลือกหรือเจอป้ายอื่น
-  if(busy||editing||(raw===lastText&&(holdSame||now-lastAt<5000)))return;
+  if(busy||editing||document.activeElement===$('manualQ')||(raw===lastText&&(holdSame||now-lastAt<5000)))return;
   const r=parseQr(raw);
   if(!r.id&&!r.code){if(now-lastWarn>2500){lastWarn=now;say('QR นี้ไม่ใช่ป้ายครุภัณฑ์ ลองป้ายอื่น','warn');}return;}
   lastText=raw;lastAt=now;holdSame=false;
