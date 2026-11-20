@@ -88,6 +88,12 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .undo input{min-height:44px;font:inherit;font-size:16px;border:1px solid #a9bfc2;border-radius:9px;padding:8px 10px;background:#fff;color:#183e44}
 .undo button{min-height:48px;font:inherit;font-weight:bold;border:0;border-radius:10px;background:#a8402f;color:#fff;cursor:pointer}.undo button:disabled{opacity:.55}
 .undo p{margin:0;font-size:13px;line-height:1.5}
+.add-link{width:100%;margin-top:8px;min-height:44px;border:2px dashed #6d9ca3;border-radius:10px;background:transparent;color:#ffe0ad;font:inherit;font-weight:700;cursor:pointer}
+.add-btn{width:100%;margin-top:10px;min-height:48px;border:2px dashed #087483;border-radius:11px;background:#f4fafa;color:#087483;font:inherit;font-weight:700;cursor:pointer}
+.add-form{display:grid;gap:9px}.add-form h2{font-size:19px;margin:0}.add-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:#5b767a}
+.add-form input[type=text],.add-form select,.add-form textarea{min-height:44px;border:1px solid #a9bfc2;border-radius:9px;padding:8px 10px;font:inherit;font-size:16px;color:#183e44;background:#fff}
+.add-form .check{flex-direction:row;align-items:center;gap:9px;font-size:14px;font-weight:700;color:#1f6b46}.add-form .check input{width:22px;height:22px;accent-color:#087483}
+.add-form .note{font-size:12px;color:#5b767a;margin:0;line-height:1.5}.add-actions{display:grid;grid-template-columns:1fr 2fr;gap:8px}.add-actions button{min-height:48px;border:0;border-radius:11px;font:inherit;font-weight:700;cursor:pointer}.add-actions .save{background:#087483;color:#fff}.add-actions .cancel{background:#e3edee;color:#183e44}.add-actions button:disabled{opacity:.55}
 .pick-filters{background:#e7f0f1;color:#183e44;border-radius:12px;padding:12px}.pick-filters label{display:block;font-size:14px;margin-bottom:9px}.pick-filters p{font-size:13px;margin:4px 0}.pick-empty{padding:10px}
 </style>
 </head>
@@ -105,6 +111,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
   </section>
   <div class="camera"><video id="video" playsinline muted autoplay></video><div class="frame" id="frame"><i></i></div></div>
   <form id="manual" class="manual" novalidate autocomplete="off"><label for="manualQ">พิมพ์เลขครุภัณฑ์เอง (QR อ่านไม่ได้ / ไม่มีป้าย)</label><div class="manual-row"><input id="manualQ" type="search" maxlength="60" placeholder="รหัสกลาง / เลขสินทรัพย์ / เลขเดิม" enterkeyhint="search" spellcheck="false" autocapitalize="characters" autocomplete="off"><button type="submit">ค้นหา</button></div></form>
+  <button id="addNew" class="add-link" type="button" hidden>＋ เพิ่มครุภัณฑ์ใหม่ (ไม่มีในทะเบียน)</button>
   <p id="message" role="status" aria-live="polite">กำลังเปิดกล้อง…</p>
   <section id="result" aria-live="polite"></section>
   <datalist id="locList"></datalist><datalist id="ownList"></datalist><datalist id="undoReasons"><option value="สแกนผิดชิ้น"></option><option value="เลือกรายการผิด"></option><option value="ป้ายติดผิดชิ้น"></option><option value="ยังไม่ได้เห็นของจริง"></option></datalist>
@@ -115,7 +122,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
     <input id="photo" type="file" accept="image/*" capture="environment">
   </div>
   <p class="muted">เล็งป้าย QR ให้อยู่ในกรอบส้ม สแกนต่อเนื่องได้ทีละป้าย • ภาพจากกล้องอ่านในเครื่องนี้เท่านั้น • ข้อมูลดึงจากเว็บแอปโดยไม่ใช้บัญชี Google จึงใช้ได้แม้ล็อกอินหลายบัญชี</p>
-<p class="muted">V9.6 · พิมพ์เลขครุภัณฑ์เองได้ · ยกเลิกการพบที่บันทึกผิดได้ (ใส่ชื่อ + เหตุผล)</p></main>
+<p class="muted">V9.7 · พิมพ์เลขครุภัณฑ์เองได้ · เพิ่มครุภัณฑ์ใหม่ที่ไม่มีในทะเบียน · ยกเลิกการพบที่บันทึกผิดได้</p></main>
 <script>
 /* jsQR (Apache-2.0) https://github.com/cozmo/jsQR @8e6a036 */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -10230,7 +10237,7 @@ const LEGACY_RE=/^0123456789[^\u0000-\u001f<>]{0,40}$/,NUMBER_RE=/^\d{6,20}$/,PE
 const $=id=>document.getElementById(id);
 const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
 let stream=null,track=null,running=false,timer=0,detector=null,detectorReady=null,torchOn=false;
-let busy=false,lastText='',lastAt=0,lastWarn=0,holdSame=false,editing=false,optionsLoaded=false,mode='look',rounds=[],roundId='',undoOpen=false;
+let busy=false,lastText='',lastAt=0,lastWarn=0,holdSame=false,editing=false,optionsLoaded=false,mode='look',rounds=[],roundId='',undoOpen=false,addOpen=false;
 
 function store(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 function stored(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
@@ -10261,7 +10268,7 @@ async function api(params){
   try{
     const options={credentials:'omit',cache:'no-store',redirect:'follow',signal:ctrl.signal};
     let url=appUrl;
-    if(params.api==='details'||params.api==='undo'){options.method='POST';options.headers={'Content-Type':'text/plain;charset=utf-8'};options.body=JSON.stringify(params);}
+    if(params.api==='details'||params.api==='undo'||params.api==='add'){options.method='POST';options.headers={'Content-Type':'text/plain;charset=utf-8'};options.body=JSON.stringify(params);}
     else url+='?'+new URLSearchParams(params).toString();
     const r=await fetch(url,options);
     const text=await r.text();let j;
@@ -10286,7 +10293,7 @@ function setMode(m){
 async function loadRounds(){
   const sel=$('round');sel.replaceChildren(new Option('กำลังโหลด…',''));sel.disabled=true;roundId='';
   try{
-    const j=await api({api:'rounds'});undoOpen=j.undoOpen===true;rounds=(j.rounds||[]).filter(r=>r.department===departmentSelect.value);sel.replaceChildren();
+    const j=await api({api:'rounds'});undoOpen=j.undoOpen===true;addOpen=j.addOpen===true;$('addNew').hidden=!addOpen;rounds=(j.rounds||[]).filter(r=>r.department===departmentSelect.value);sel.replaceChildren();
     if(!rounds.length){sel.add(new Option('ยังไม่มีรอบที่เปิด',''));if(mode==='stock')say('ยังไม่มีรอบตรวจที่เปิดอยู่ — ผู้ดูแลต้องเปิดรอบก่อน','warn');return;}
     rounds.forEach(r=>sel.add(new Option('บพ.'+String(r.department).replace(/^BP/,'')+' · '+r.year+' รอบ '+r.round,r.id)));
     const pick=rounds.find(r=>r.id===wantRound)||rounds.find(r=>r.department===j.defaultDepartment)||rounds[0];
@@ -10519,7 +10526,7 @@ async function manualSearch(){
 function showSearch(j,q,stock){
   const box=$('result');box.replaceChildren();
   if(stock&&j.counts)showCounts(j.counts);
-  if(!j.total){say('ไม่พบ “'+q+'” ในทะเบียน — ตรวจตัวเลขอีกครั้ง หรือพิมพ์บางส่วน (อย่างน้อย 3 ตัว)','warn');return;}
+  if(!j.total){say('ไม่พบ “'+q+'” ในทะเบียนทุกแผนก — ตรวจตัวเลขอีกครั้ง หรือถ้าเป็นของจริงที่ไม่มีในทะเบียน กดเพิ่มเป็นครุภัณฑ์ใหม่','warn');if(addOpen){const b=el('button','＋ เพิ่ม “'+q+'” เป็นครุภัณฑ์ใหม่','add-btn');b.type='button';b.onclick=()=>addForm(q);box.append(b);}return;}
   const more=j.truncated?' (แสดง '+j.results.length+' รายการแรก พิมพ์เพิ่มเพื่อจำกัดผล)':'';
   say((stock?'พบ '+j.total+' รายการ — แตะรายการที่ตรงกับของจริง ระบบจึงบันทึกพบ':'พบ '+j.total+' รายการ — แตะเพื่อดู')+more,'warn');
   box.append(pickList(j.results,a=>{
@@ -10530,6 +10537,54 @@ function showSearch(j,q,stock){
   box.scrollIntoView({behavior:'smooth',block:'start'});
 }
 $('manual').onsubmit=e=>{e.preventDefault();manualSearch();};
+
+/* ---------- V9.7 เพิ่มครุภัณฑ์ชิ้นใหม่ (เจอของจริง แต่ไม่มีในทะเบียน) ---------- */
+function addForm(prefill){
+  if(busy)return;
+  editing=true;holdSame=false;lastText='';loadOptions();
+  const box=$('result');box.replaceChildren();
+  const c=el('article',undefined,'card info'),f=el('form',undefined,'add-form');f.noValidate=true;
+  f.append(el('h2','＋ เพิ่มครุภัณฑ์ชิ้นใหม่'),el('p','ใช้เมื่อเจอของจริงที่ยังไม่มีในทะเบียน · ระบบให้รหัสกลางใหม่ · เลขที่ซ้ำกับทะเบียนเดิมจะเพิ่มไม่ได้','note'));
+  const field=(label,o={})=>{const l=el('label',label),i=el(o.area?'textarea':'input');if(!o.area)i.type='text';i.maxLength=o.max||150;i.placeholder=o.ph||'';if(o.value)i.value=o.value;if(o.list)i.setAttribute('list',o.list);i.autocomplete=o.auto||'off';l.append(i);f.append(l);return i;};
+  const deptL=el('label','แผนก (ทะเบียน)'),dept=el('select');for(let n=1;n<=6;n++){const o=el('option','บพ.'+n);o.value='BP'+n;dept.append(o);}dept.value=departmentSelect.value;deptL.append(dept);f.append(deptL);
+  const digits=String(prefill||'').replace(/[\s-]/g,''),isNum=/^\d{6,20}$/.test(digits);
+  const desc=field('ชื่อครุภัณฑ์ *',{max:200,ph:'เช่น เครื่องพิมพ์ HP LaserJet'});
+  const no=field('เลขสินทรัพย์',{max:40,ph:'เว้นว่างถ้าไม่มี',value:isNum&&digits.length>=12?digits:''});no.inputMode='numeric';
+  const old=field('เลขสินทรัพย์เดิม',{max:40,ph:'เว้นว่างถ้าไม่มี',value:isNum&&digits.length<12?digits:''});old.inputMode='numeric';
+  const loc=field('สถานที่ที่พบ *',{list:'locList',ph:'เช่น อาคาร 2 ชั้น 3 (สามเสน)'});
+  const own=field('เจ้าของ / ผู้ใช้งาน',{list:'ownList',ph:'เว้นว่างได้'});
+  const note=field('หมายเหตุ',{area:true,max:2000,ph:'เช่น พบระหว่างตรวจนับ ไม่มีในทะเบียน'});note.rows=2;
+  const by=field('ชื่อผู้เพิ่ม *',{max:60,value:cleanName($('who').value||stored('meaInspectorName')),auto:'name'});
+  const stock=mode==='stock'&&roundId,markL=el('label',undefined,'check'),mark=el('input');mark.type='checkbox';mark.checked=true;
+  markL.append(mark,el('span','บันทึกพบในรอบตรวจนี้ด้วย'));if(stock)f.append(markL);
+  const sync=()=>{markL.hidden=!stock||!roundId.endsWith('-'+dept.value);};dept.onchange=sync;sync();
+  const row=el('div',undefined,'add-actions'),cancel=el('button','ยกเลิก','cancel'),save=el('button','เพิ่มเข้าทะเบียน','save');cancel.type='button';save.type='submit';row.append(cancel,save);
+  const status=el('p','','note');status.setAttribute('role','status');f.append(row,status);c.append(f);box.append(c);
+  cancel.onclick=()=>{editing=false;lastAt=Date.now();box.replaceChildren();say('ยกเลิกการเพิ่ม · เล็งป้ายถัดไปได้เลย');};
+  let pending=null,lastKey='';
+  f.onsubmit=async e=>{
+    e.preventDefault();if(save.disabled||busy)return;
+    const p={api:'add',department:dept.value,description:desc.value.replace(/\s+/g,' ').trim(),assetNo:no.value.trim(),oldAssetNo:old.value.trim(),location:loc.value.replace(/\s+/g,' ').trim(),owner:own.value.replace(/\s+/g,' ').trim(),note:note.value.trim(),by:cleanName(by.value),period:stock&&!markL.hidden?roundId:'',markFound:!!(stock&&!markL.hidden&&mark.checked)};
+    if(!p.description){status.textContent='กรุณาใส่ชื่อครุภัณฑ์';desc.focus();return;}
+    if(!p.location){status.textContent='กรุณาใส่สถานที่ที่พบ';loc.focus();return;}
+    if(!p.by){status.textContent='กรุณาใส่ชื่อผู้เพิ่ม';by.focus();return;}
+    if(!confirm('เพิ่ม “'+p.description+'” เข้าทะเบียน บพ.'+p.department.slice(2)+(p.markFound?' และบันทึกพบในรอบนี้':'')+' ?'))return;
+    const key=JSON.stringify(p);if(!pending||key!==lastKey){pending={...p,rid:rid()};lastKey=key;}
+    save.disabled=cancel.disabled=true;status.textContent='กำลังเพิ่ม…';busy=true;
+    try{
+      const j=await api(pending);pending=null;
+      store('meaInspectorName',p.by);if(!cleanName($('who').value))$('who').value=p.by;optionsLoaded=false;
+      if(j.counts&&p.period===roundId)showCounts(j.counts);
+      const a=j.asset,extra=j.found?'บันทึกพบแล้ว':j.rounds&&j.rounds.length?'เพิ่มเข้ารอบตรวจแล้ว':'';
+      editing=false;box.replaceChildren(card(a,['ok','✓ เพิ่มเข้าทะเบียนแล้ว · '+a.id+(extra?' · '+extra:'')]));
+      say('เพิ่ม '+a.id+' แล้ว · ค้นด้วยเลขได้ทันที (ยังไม่มีป้าย QR ของรหัสนี้)','good');
+    }catch(err){status.textContent='เพิ่มไม่สำเร็จ: '+err.message;save.disabled=cancel.disabled=false;}
+    finally{busy=false;}
+  };
+  box.scrollIntoView({behavior:'smooth',block:'start'});desc.focus();
+  say('กำลังเพิ่มครุภัณฑ์ใหม่ — หยุดสแกนชั่วคราว');
+}
+$('addNew').onclick=()=>addForm(($('manualQ').value||'').trim());
 
 /* ---------- อ่าน QR ---------- */
 function parseQr(text){
